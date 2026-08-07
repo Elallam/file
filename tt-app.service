@@ -1,0 +1,27 @@
+[Unit]
+Description=Racket-Sports Liga-Pro Analyzer (gunicorn)
+After=network.target
+
+[Service]
+# Adjust these three paths/user for your VPS
+User=www-data
+WorkingDirectory=/opt/tt-app
+Environment="PATH=/opt/tt-app/venv/bin"
+
+# workers=2: each request runs a headless Chromium via sofascore-wrapper, so
+# keep this low on small VPS instances (1-2 GB RAM). Bump only if you've
+# confirmed you have the RAM for it (~250-400MB per concurrent Chromium).
+# timeout=120: first hit per league spins up Chromium + several page loads,
+# which can take 20-40s; give it real headroom so gunicorn doesn't kill it.
+ExecStart=/opt/tt-app/venv/bin/gunicorn \
+    --workers 2 \
+    --threads 2 \
+    --timeout 120 \
+    --bind 127.0.0.1:8000 \
+    app:app
+
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
