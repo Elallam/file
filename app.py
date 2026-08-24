@@ -1,22 +1,19 @@
 """
-Table-Tennis & Tennis Liga-Pro Analyzer
-========================================
+Racket-Sports & Football Liga-Pro Analyzer
+============================================
 
 Fetches FINISHED matches from SofaScore (via `sofascore-wrapper==1.1.1`,
 which drives a headless Chromium so it survives SofaScore's 403-on-plain-REST
-protection) and serves a single web page that shows, per match:
+protection) and serves a single web page with a per-sport analysis table.
 
-    id | game | total points/games | even/odd | winning odd | number of sets
+    Table tennis / Tennis: id, game, total points/games, even/odd,
+                            winning odd, # sets (3-set deciders highlighted)
+    Football:               id, game, winner (1/X/2), winner odd,
+                            goals (O/U 2.5), corners (O/U 9.5), cards (O/U 5.5)
 
-Matches decided in 3 sets (a decider) are highlighted yellow in both tables.
-
-Table tennis leagues (Liga Pro, Setka Cup, ...) are each a single continuous
-SofaScore "unique tournament" -> selecting the tab loads matches directly.
-
-Tennis leagues (ATP, WTA, Challenger, ITF...) are SofaScore *categories* that
-contain many individual tournaments (Wimbledon, Miami Open, ...) -> selecting
-the tab loads the list of tournaments in that category, and you then pick one
-from the dropdown to load its matches.
+Each sport declares its own `columns` and an `analyzer` tag; rows are built
+server-side as {key: {"text":..., "variant":..., "sub":...}} cells so the
+front end can render any sport generically.
 
 Run:
     pip install -r requirements.txt
@@ -41,21 +38,37 @@ app = Flask(__name__)
 # ----------------------------------------------------------------------------
 # Sports & competitions.
 #
-# Table tennis "leagues" map straight to one SofaScore unique-tournament
-# (resolved via search, or pin `tournament_id` to skip search).
+# `analyzer`:
+#   "sets"      -> table tennis / tennis: periods are per-set points/games.
+#   "football"  -> winner (1/X/2) + goals/corners/cards vs a fixed line.
 #
-# Tennis "leagues" map to a SofaScore *category* (resolved via Tennis
-# categories() by name match, or pin `category_id` to skip that lookup).
-# Selecting one then lists the individual tournaments inside it, and you
-# pick a specific tournament from the dropdown.
+# Table tennis & football "leagues" map straight to one SofaScore
+# unique-tournament (resolved via search + country match, or pin
+# `tournament_id` to skip search).
+#
+# Tennis "leagues" map to a SofaScore *category* (ATP/WTA/...) containing
+# many individual tournaments -> pick one from the dropdown (has_tournament_picker).
 # ----------------------------------------------------------------------------
 SPORTS = {
     "table-tennis": {
         "label": "Table Tennis",
         "sport_key": "table-tennis",
+        "analyzer": "sets",
         "metric_label": "Total points",
         "decider_sets": 3,
         "has_tournament_picker": False,
+        "columns": [
+            {"key": "id", "label": "ID"},
+            {"key": "game", "label": "Game"},
+            {"key": "total_points", "label": "Total points"},
+            {"key": "even_odd", "label": "Even / Odd"},
+            {"key": "winning_odd", "label": "Winning odd"},
+            {"key": "num_sets", "label": "# Sets"},
+        ],
+        "note": ("<b>Total points</b> = sum of points across every set (both players). "
+                 "<b>Even/Odd</b> = parity of that total. "
+                 "<b>Winning odd</b> = pre-match decimal odd of the player who actually won. "
+                 "<b># Sets</b> = sets played &mdash; rows highlighted yellow went to 3 sets (a decider)."),
         "leagues": {
             "belarus-liga-pro":  {"label": "Belarus · Liga Pro",  "country": "Belarus",        "search": "Liga Pro",  "tournament_id": None},
             "czech-liga-pro":    {"label": "Czech · Liga Pro",    "country": "Czech Republic", "search": "Liga Pro",  "tournament_id": None},
@@ -67,37 +80,94 @@ SPORTS = {
     "tennis": {
         "label": "Tennis",
         "sport_key": "tennis",
+        "analyzer": "sets",
         "metric_label": "Total games",
-        "decider_sets": 3,          # best-of-3 matches decided by a 3rd set
+        "decider_sets": 3,
         "has_tournament_picker": True,
+        "columns": [
+            {"key": "id", "label": "ID"},
+            {"key": "game", "label": "Game"},
+            {"key": "total_points", "label": "Total games"},
+            {"key": "even_odd", "label": "Even / Odd"},
+            {"key": "winning_odd", "label": "Winning odd"},
+            {"key": "num_sets", "label": "# Sets"},
+        ],
+        "note": ("<b>Total games</b> = sum of games across every set (both players). "
+                 "<b>Even/Odd</b> = parity of that total. "
+                 "<b>Winning odd</b> = pre-match decimal odd of the player who actually won. "
+                 "<b># Sets</b> = sets played &mdash; rows highlighted yellow went to 3 sets (a decider). "
+                 "Pick a specific tournament above &mdash; ATP/WTA/etc. are categories containing many events."),
         "leagues": {
-            "atp":        {"label": "ATP",        "match": ["atp"],               "category_id": None},
-            "wta":        {"label": "WTA",        "match": ["wta"],               "category_id": None},
-            "challenger": {"label": "Challenger", "match": ["challenger"],        "category_id": None},
-            "itf-men":    {"label": "ITF Men",    "match": ["itf men", "itf m"],  "category_id": None},
-            "itf-women":  {"label": "ITF Women",  "match": ["itf women", "itf w"],"category_id": None},
+            "atp":        {"label": "ATP",        "match": ["atp"],                "category_id": None},
+            "wta":        {"label": "WTA",        "match": ["wta"],                "category_id": None},
+            "challenger": {"label": "Challenger",  "match": ["challenger"],        "category_id": None},
+            "itf-men":    {"label": "ITF Men",    "match": ["itf men", "itf m"],   "category_id": None},
+            "itf-women":  {"label": "ITF Women",  "match": ["itf women", "itf w"], "category_id": None},
+        },
+    },
+    "football": {
+        "label": "Football",
+        "sport_key": "football",
+        "analyzer": "football",
+        "metric_label": None,
+        "decider_sets": None,
+        "has_tournament_picker": False,
+        "columns": [
+            {"key": "id", "label": "ID"},
+            {"key": "game", "label": "Game"},
+            {"key": "winner", "label": "Winner (1X2)"},
+            {"key": "winner_odd", "label": "Winner odd"},
+            {"key": "total_goals", "label": "Goals (O/U 2.5)"},
+            {"key": "total_corners", "label": "Corners (O/U 9.5)"},
+            {"key": "total_cards", "label": "Cards (O/U 5.5)"},
+        ],
+        "note": ("<b>Winner</b> = 1 (home), X (draw), 2 (away). "
+                 "<b>Winner odd</b> = pre-match decimal odd of the outcome that actually happened. "
+                 "<b>Goals/Corners/Cards</b> = the match's actual total vs. the fixed line, "
+                 "shown as Over/Under. Corners/cards show N/A if SofaScore has no match statistics for that game."),
+        "leagues": {
+            "premier-league": {"label": "Premier League", "country": "England", "search": "Premier League", "tournament_id": None},
+            "la-liga":        {"label": "La Liga",        "country": "Spain",   "search": "LaLiga",         "tournament_id": None},
+            "serie-a":        {"label": "Serie A",        "country": "Italy",   "search": "Serie A",        "tournament_id": None},
+            "bundesliga":     {"label": "Bundesliga",     "country": "Germany", "search": "Bundesliga",     "tournament_id": None},
+            "ligue-1":        {"label": "Ligue 1",        "country": "France",  "search": "Ligue 1",        "tournament_id": None},
         },
     },
 }
 
-DEFAULT_LIMIT = 25          # finished matches analysed per tournament
-CACHE_TTL = 300              # seconds, for match data
-META_CACHE_TTL = 3600        # seconds, for category/tournament lists (rarely change)
-ACTIVE_TTL = 120             # seconds, for the "which tournaments are ongoing" lookup
+DEFAULT_LIMIT = 25
+CACHE_TTL = 300
+META_CACHE_TTL = 3600
+ACTIVE_TTL = 120
 
-_match_cache = {}            # (sport,league,tournament_id,limit) -> (ts, payload)
-_id_cache = {}                # (sport,league) -> resolved tournament_id (table tennis)
-_category_cache = {}          # (sport,league) -> (ts, category_id)
-_tournament_list_cache = {}   # (sport,league) -> (ts, [{"id":.., "name":..}, ...])
-_active_cache = {}            # sport_key -> (ts, set(tournament_id) | None)
+_match_cache = {}             # (sport,league,tournament_id,limit) -> (ts, payload)
+_id_cache = {}                 # (sport,league) -> resolved tournament_id
+_category_cache = {}           # (sport,league) -> (ts, category_id)
+_tournament_list_cache = {}    # (sport,league) -> (ts, (tournaments, category_id))
+_active_cache = {}             # sport_key -> (ts, set(tournament_id) | None)
 
 
 # ----------------------------------------------------------------------------
-# Pure analysis helpers (no network) -- unit-testable.
+# Pure helpers -- no network, unit-testable.
 # ----------------------------------------------------------------------------
+def cell(text, variant=None, sub=None):
+    c = {"text": text, "variant": variant}
+    if sub:
+        c["sub"] = sub
+    return c
+
+
+def _to_number(x):
+    if x is None:
+        return None
+    try:
+        return float(str(x).replace("%", "").strip())
+    except Exception:
+        return None
+
+
 def _period_points(score: dict):
-    """Return the list of per-set tallies (points for table tennis, games for
-    tennis) from a SofaScore score dict."""
+    """Per-set tallies (points for table tennis, games for tennis)."""
     pts = []
     i = 1
     while True:
@@ -110,40 +180,6 @@ def _period_points(score: dict):
     return pts
 
 
-def analyze_event(event: dict, winning_odd=None) -> dict:
-    """Turn one finished SofaScore event into an analysis row. Works for both
-    table tennis (periods = points) and tennis (periods = games)."""
-    home = event.get("homeTeam", {}).get("name", "?")
-    away = event.get("awayTeam", {}).get("name", "?")
-    hs = event.get("homeScore", {}) or {}
-    as_ = event.get("awayScore", {}) or {}
-
-    home_sets_pts = _period_points(hs)
-    away_sets_pts = _period_points(as_)
-
-    num_sets = max(len(home_sets_pts), len(away_sets_pts))
-    if num_sets == 0:
-        num_sets = int(hs.get("current", 0)) + int(as_.get("current", 0))
-
-    total_points = sum(home_sets_pts) + sum(away_sets_pts)
-
-    winner_code = event.get("winnerCode")  # 1 = home, 2 = away
-    winner = home if winner_code == 1 else away if winner_code == 2 else "-"
-
-    return {
-        "id": event.get("id"),
-        "game": f"{home} vs {away}",
-        "home": home,
-        "away": away,
-        "set_score": f'{hs.get("current", "?")}–{as_.get("current", "?")}',
-        "winner": winner,
-        "total_points": total_points,
-        "even_odd": "Even" if total_points % 2 == 0 else "Odd",
-        "winning_odd": winning_odd,
-        "num_sets": num_sets,
-    }
-
-
 def fractional_to_decimal(frac: str):
     """'57/100' -> 1.57 ; '9/2' -> 5.5 ; returns None on failure."""
     try:
@@ -153,23 +189,46 @@ def fractional_to_decimal(frac: str):
         return None
 
 
-def pick_winning_odd(odds_payload: dict, winner_code):
-    """From /odds/1/all pick the decimal odd of the outcome that actually won."""
+def pick_choice_odd(odds_payload, choice_name, market_id=1):
+    """From /odds/1/all, get the decimal odd for a named outcome ('1'/'X'/'2')
+    in the given market (defaults to the Full-time / match-winner market)."""
     if not odds_payload:
         return None
     markets = odds_payload.get("markets", [])
     if not markets:
         return None
-    market = next((m for m in markets if m.get("marketId") == 1), markets[0])
-    choices = market.get("choices", [])
-
-    win_choice = next((c for c in choices if c.get("winning")), None)
-    if win_choice is None and winner_code in (1, 2):
-        target = "1" if winner_code == 1 else "2"
-        win_choice = next((c for c in choices if c.get("name") == target), None)
-    if win_choice is None:
+    market = next((m for m in markets if m.get("marketId") == market_id), markets[0])
+    choice = next((c for c in market.get("choices", []) if c.get("name") == choice_name), None)
+    if not choice:
         return None
-    return fractional_to_decimal(win_choice.get("fractionalValue", ""))
+    return fractional_to_decimal(choice.get("fractionalValue", ""))
+
+
+def parse_football_stats(stats_payload):
+    """Parse /event/{id}/statistics -> {'corners': (home,away)|None, 'cards': (home,away)|None}."""
+    result = {"corners": None, "cards": None}
+    if not stats_payload:
+        return result
+    blocks = stats_payload.get("statistics", [])
+    if not blocks:
+        return result
+    period = next((b for b in blocks if b.get("period") == "ALL"), blocks[0])
+    for group in period.get("groups", []):
+        for item in group.get("statisticsItems", []):
+            key = (item.get("key") or "").lower()
+            name = (item.get("name") or "").lower()
+            hv = item.get("homeValue")
+            av = item.get("awayValue")
+            if hv is None or av is None:
+                hv = _to_number(item.get("home"))
+                av = _to_number(item.get("away"))
+            if hv is None or av is None:
+                continue
+            if "corner" in key or "corner" in name:
+                result["corners"] = (hv, av)
+            elif "yellowcard" in key.replace(" ", "") or "yellow card" in name:
+                result["cards"] = (hv, av)
+    return result
 
 
 def parse_categories(data) -> list:
@@ -189,9 +248,7 @@ def parse_categories(data) -> list:
 
 
 def parse_tournaments(data) -> list:
-    """Defensively parse League.leagues(category_id) -> /category/{id}/unique-tournaments.
-    SofaScore has returned this nested under 'groups[].uniqueTournaments' and,
-    on some sports, as a flat 'uniqueTournaments' / 'tournaments' list."""
+    """Defensively parse League.leagues(category_id) -> /category/{id}/unique-tournaments."""
     out, seen = [], set()
 
     def add(items):
@@ -217,35 +274,170 @@ def parse_tournaments(data) -> list:
     return out
 
 
+def extract_tournament_ids(events: list) -> set:
+    ids = set()
+    for ev in events or []:
+        t = ev.get("tournament", {}) or {}
+        ut = t.get("uniqueTournament") or {}
+        tid = ut.get("id", t.get("id"))
+        if tid is not None:
+            ids.add(tid)
+    return ids
+
+
+# ----------------------------------------------------------------------------
+# Row analyzers -- pure, unit-testable.
+# ----------------------------------------------------------------------------
+def analyze_row_sets(event: dict, winning_odd, decider_sets: int) -> dict:
+    home = event.get("homeTeam", {}).get("name", "?")
+    away = event.get("awayTeam", {}).get("name", "?")
+    hs = event.get("homeScore", {}) or {}
+    as_ = event.get("awayScore", {}) or {}
+
+    home_pts = _period_points(hs)
+    away_pts = _period_points(as_)
+    num_sets = max(len(home_pts), len(away_pts))
+    if num_sets == 0:
+        num_sets = int(hs.get("current", 0)) + int(as_.get("current", 0))
+    total = sum(home_pts) + sum(away_pts)
+
+    winner_code = event.get("winnerCode")
+    winner = home if winner_code == 1 else away if winner_code == 2 else "-"
+    is_decider = num_sets == decider_sets
+
+    return {
+        "id": event.get("id"),
+        "game": cell(f"{home} vs {away}", sub=f'{hs.get("current","?")}–{as_.get("current","?")} · won: {winner}'),
+        "total_points": cell(str(total)),
+        "even_odd": cell("Even" if total % 2 == 0 else "Odd", variant="even" if total % 2 == 0 else "odd"),
+        "winning_odd": cell(f"{winning_odd:.2f}" if winning_odd is not None else "—",
+                             variant="odd-value" if winning_odd is not None else None),
+        "num_sets": cell(str(num_sets), variant="decider" if is_decider else "normal"),
+        "highlight": "decider" if is_decider else None,
+        "_raw": {"total_points": total, "even_odd": "Even" if total % 2 == 0 else "Odd",
+                  "winning_odd": winning_odd, "num_sets": num_sets},
+    }
+
+
+def analyze_row_football(event: dict, winner_odd, corners, cards) -> dict:
+    home = event.get("homeTeam", {}).get("name", "?")
+    away = event.get("awayTeam", {}).get("name", "?")
+    hs = event.get("homeScore", {}) or {}
+    as_ = event.get("awayScore", {}) or {}
+    home_goals = int(hs.get("current", 0) or 0)
+    away_goals = int(as_.get("current", 0) or 0)
+    total_goals = home_goals + away_goals
+
+    winner_code = event.get("winnerCode")
+    if winner_code == 1:
+        outcome, variant = "1", "home"
+    elif winner_code == 2:
+        outcome, variant = "2", "away"
+    elif winner_code == 3 or home_goals == away_goals:
+        outcome, variant = "X", "draw"
+    elif home_goals > away_goals:
+        outcome, variant = "1", "home"
+    else:
+        outcome, variant = "2", "away"
+
+    goals_variant = "over" if total_goals > 2.5 else "under"
+    goals_text = f'{total_goals} ({"Over" if goals_variant == "over" else "Under"} 2.5)'
+
+    if corners is not None:
+        total_corners = corners[0] + corners[1]
+        corners_variant = "over" if total_corners > 9.5 else "under"
+        corners_text = f'{total_corners:g} ({"Over" if corners_variant == "over" else "Under"} 9.5)'
+    else:
+        total_corners, corners_variant, corners_text = None, None, "N/A"
+
+    if cards is not None:
+        total_cards = cards[0] + cards[1]
+        cards_variant = "over" if total_cards > 5.5 else "under"
+        cards_text = f'{total_cards:g} ({"Over" if cards_variant == "over" else "Under"} 5.5)'
+    else:
+        total_cards, cards_variant, cards_text = None, None, "N/A"
+
+    return {
+        "id": event.get("id"),
+        "game": cell(f"{home} vs {away}", sub=f"{home_goals}-{away_goals} FT"),
+        "winner": cell(outcome, variant=variant),
+        "winner_odd": cell(f"{winner_odd:.2f}" if winner_odd is not None else "—",
+                            variant="odd-value" if winner_odd is not None else None),
+        "total_goals": cell(goals_text, variant=goals_variant),
+        "total_corners": cell(corners_text, variant=corners_variant),
+        "total_cards": cell(cards_text, variant=cards_variant),
+        "highlight": None,
+        "_raw": {"outcome": outcome, "winner_odd": winner_odd,
+                  "total_goals": total_goals, "goals_variant": goals_variant,
+                  "total_corners": total_corners, "corners_variant": corners_variant,
+                  "total_cards": total_cards, "cards_variant": cards_variant},
+    }
+
+
+def build_summary(sport_cfg, rows):
+    raws = [r["_raw"] for r in rows]
+    n = len(raws)
+    if n == 0:
+        return []
+    if sport_cfg["analyzer"] == "sets":
+        even_n = sum(1 for r in raws if r["even_odd"] == "Even")
+        avg_total = round(sum(r["total_points"] for r in raws) / n, 1)
+        odds = [r["winning_odd"] for r in raws if r["winning_odd"] is not None]
+        avg_odd = round(sum(odds) / len(odds), 2) if odds else None
+        decider_n = sum(1 for r in raws if r["num_sets"] == sport_cfg["decider_sets"])
+        return [
+            {"label": "Matches", "value": str(n)},
+            {"label": "Even / Odd", "value": f"{even_n} / {n - even_n}"},
+            {"label": f"Avg {sport_cfg['metric_label'].lower()}", "value": str(avg_total)},
+            {"label": "Avg winning odd", "value": f"{avg_odd:.2f}" if avg_odd is not None else "—"},
+            {"label": f"{sport_cfg['decider_sets']}-set deciders", "value": str(decider_n)},
+        ]
+    if sport_cfg["analyzer"] == "football":
+        home_n = sum(1 for r in raws if r["outcome"] == "1")
+        draw_n = sum(1 for r in raws if r["outcome"] == "X")
+        away_n = sum(1 for r in raws if r["outcome"] == "2")
+        over_goals = sum(1 for r in raws if r["goals_variant"] == "over")
+        corners_known = [r for r in raws if r["corners_variant"] is not None]
+        cards_known = [r for r in raws if r["cards_variant"] is not None]
+        over_corners = sum(1 for r in corners_known if r["corners_variant"] == "over")
+        over_cards = sum(1 for r in cards_known if r["cards_variant"] == "over")
+        return [
+            {"label": "Matches", "value": str(n)},
+            {"label": "Home / Draw / Away", "value": f"{home_n} / {draw_n} / {away_n}"},
+            {"label": "Over 2.5 goals", "value": f"{over_goals}/{n}"},
+            {"label": "Over 9.5 corners", "value": f"{over_corners}/{len(corners_known)}" if corners_known else "—"},
+            {"label": "Over 5.5 cards", "value": f"{over_cards}/{len(cards_known)}" if cards_known else "—"},
+        ]
+    return []
+
+
 # ----------------------------------------------------------------------------
 # Network layer (async, one Chromium session per request).
 # ----------------------------------------------------------------------------
 async def resolve_tournament_id(api, sport_key, cfg):
-    """Table-tennis path: search -> single unique tournament."""
+    """Search -> single unique tournament, matched by country."""
     search = Search(api, search_string=cfg["search"])
     data = await search.search_leagues(sport_key)
     results = data.get("results", []) if isinstance(data, dict) else data
     if not results:
         return None
-
     country = (cfg.get("country") or "").lower()
     for entry in results:
         ent = entry.get("entity", entry)
-        cat = (ent.get("category") or {})
+        cat = ent.get("category") or {}
         cat_name = (cat.get("name") or "").lower()
         cat_country = ((cat.get("country") or {}).get("name") or "").lower()
         if country in (cat_name, cat_country):
             return ent.get("id")
     for entry in results:
         ent = entry.get("entity", entry)
-        cat = (ent.get("category") or {})
+        cat = ent.get("category") or {}
         if country in (cat.get("name") or "").lower():
             return ent.get("id")
     return None
 
 
 async def resolve_category_id(api, cfg):
-    """Tennis path: match a category (ATP/WTA/Challenger/ITF...) by name."""
     data = await Tennis(api).categories()
     categories = parse_categories(data)
     patterns = cfg["match"]
@@ -260,23 +452,25 @@ async def resolve_category_id(api, cfg):
     return None
 
 
-def extract_tournament_ids(events: list) -> set:
-    """Pull unique-tournament ids out of a list of SofaScore events (live or
-    scheduled-today), so we know which tournaments currently have action."""
-    ids = set()
-    for ev in events or []:
-        t = ev.get("tournament", {}) or {}
-        ut = t.get("uniqueTournament") or {}
-        tid = ut.get("id", t.get("id"))
-        if tid is not None:
-            ids.add(tid)
-    return ids
+async def get_category_id(api, sport_key, league_key):
+    cfg = SPORTS[sport_key]["leagues"][league_key]
+    if cfg.get("category_id"):
+        return cfg["category_id"]
+    cache_key = (sport_key, league_key)
+    hit = _category_cache.get(cache_key)
+    if hit and time.time() - hit[0] < META_CACHE_TTL:
+        return hit[1]
+    cid = await resolve_category_id(api, cfg)
+    if cid:
+        _category_cache[cache_key] = (time.time(), cid)
+    return cid
+
+
+def extract_tournament_ids_wrapper(events):  # kept for symmetry / testability
+    return extract_tournament_ids(events)
 
 
 async def fetch_active_tournament_ids(api, sport_key):
-    """Union of tournament ids with a live match right now, plus ids with any
-    match scheduled today, for the given sport. Returns None (== unknown, so
-    callers should fail open and not disable anything) if both lookups fail."""
     ids, got_any = set(), False
     try:
         live = await api._get(f"/sport/{sport_key}/events/live")
@@ -307,20 +501,6 @@ async def get_active_tournament_ids(sport_key):
     return ids
 
 
-async def get_category_id(api, sport_key, league_key):
-    cfg = SPORTS[sport_key]["leagues"][league_key]
-    if cfg.get("category_id"):
-        return cfg["category_id"]
-    cache_key = (sport_key, league_key)
-    hit = _category_cache.get(cache_key)
-    if hit and time.time() - hit[0] < META_CACHE_TTL:
-        return hit[1]
-    cid = await resolve_category_id(api, cfg)
-    if cid:
-        _category_cache[cache_key] = (time.time(), cid)
-    return cid
-
-
 async def get_tournament_list(sport_key, league_key):
     cache_key = (sport_key, league_key)
     hit = _tournament_list_cache.get(cache_key)
@@ -339,26 +519,21 @@ async def get_tournament_list(sport_key, league_key):
         finally:
             await api.close()
 
-    # "active" = has a live match right now or one scheduled today; None means
-    # we couldn't determine it (network hiccup) -> don't disable anything.
     active_ids = await get_active_tournament_ids(SPORTS[sport_key]["sport_key"])
     tagged = []
     for t in tournaments:
         active = None if active_ids is None else (t["id"] in active_ids)
         tagged.append({**t, "active": active})
     tagged.sort(key=lambda t: (t["active"] is False, (t["name"] or "").lower()))
-
     return {"category_id": category_id, "tournaments": tagged, "error": None}
 
 
 async def fetch_finished(api, tournament_id, limit):
-    """Page through the 'last' (finished) events endpoint for the season."""
     league = League(api, tournament_id)
     season = await league.current_season()
     if not season:
         return []
     season_id = season["id"]
-
     finished, page = [], 0
     while len(finished) < limit and page < 8:
         try:
@@ -377,6 +552,39 @@ async def fetch_finished(api, tournament_id, limit):
     return finished[:limit]
 
 
+async def build_row(api, sport_cfg, event):
+    try:
+        odds = await Match(api, event["id"]).match_odds()
+    except Exception:
+        odds = None
+
+    if sport_cfg["analyzer"] == "football":
+        winner_code = event.get("winnerCode")
+        hs = event.get("homeScore", {}) or {}
+        as_ = event.get("awayScore", {}) or {}
+        hg, ag = int(hs.get("current", 0) or 0), int(as_.get("current", 0) or 0)
+        if winner_code == 1:
+            outcome = "1"
+        elif winner_code == 2:
+            outcome = "2"
+        elif winner_code == 3 or hg == ag:
+            outcome = "X"
+        else:
+            outcome = "1" if hg > ag else "2"
+        winner_odd = pick_choice_odd(odds, outcome)
+        try:
+            stats_raw = await Match(api, event["id"]).stats()
+            parsed = parse_football_stats(stats_raw)
+        except Exception:
+            parsed = {"corners": None, "cards": None}
+        return analyze_row_football(event, winner_odd, parsed["corners"], parsed["cards"])
+    else:
+        winner_code = event.get("winnerCode")
+        choice_name = "1" if winner_code == 1 else "2" if winner_code == 2 else None
+        winning_odd = pick_choice_odd(odds, choice_name) if choice_name else None
+        return analyze_row_sets(event, winning_odd, sport_cfg["decider_sets"])
+
+
 async def build_match_payload(sport_key, league_key, tournament_id, limit):
     sport_cfg = SPORTS[sport_key]
     cfg = sport_cfg["leagues"][league_key]
@@ -392,28 +600,16 @@ async def build_match_payload(sport_key, league_key, tournament_id, limit):
                     _id_cache[cache_id_key] = tid
 
         if not tid:
-            return {
-                "sport": sport_key, "league": cfg["label"], "tournament_id": None,
-                "metric_label": sport_cfg["metric_label"], "decider_sets": sport_cfg["decider_sets"],
-                "rows": [], "error": "Missing tournament id",
-            }
+            return {"sport": sport_key, "league": cfg["label"], "tournament_id": None,
+                    "rows": [], "summary": [], "error": "Missing tournament id"}
 
         events = await fetch_finished(api, tid, limit)
-        rows = []
-        for ev in events:
-            odd = None
-            try:
-                odds = await Match(api, ev["id"]).match_odds()
-                odd = pick_winning_odd(odds, ev.get("winnerCode"))
-            except Exception:
-                odd = None
-            rows.append(analyze_event(ev, winning_odd=odd))
+        rows = [await build_row(api, sport_cfg, ev) for ev in events]
+        summary = build_summary(sport_cfg, rows)
+        display_rows = [{k: v for k, v in r.items() if k != "_raw"} for r in rows]
 
-        return {
-            "sport": sport_key, "league": cfg["label"], "tournament_id": tid,
-            "metric_label": sport_cfg["metric_label"], "decider_sets": sport_cfg["decider_sets"],
-            "rows": rows, "error": None,
-        }
+        return {"sport": sport_key, "league": cfg["label"], "tournament_id": tid,
+                "rows": display_rows, "summary": summary, "error": None}
     finally:
         await api.close()
 
@@ -433,9 +629,11 @@ def get_match_data(sport_key, league_key, tournament_id, limit):
 # ----------------------------------------------------------------------------
 @app.route("/api/sports")
 def api_sports():
-    return jsonify([{"key": k, "label": v["label"], "metric_label": v["metric_label"],
-                      "decider_sets": v["decider_sets"],
-                      "has_tournament_picker": v["has_tournament_picker"]} for k, v in SPORTS.items()])
+    return jsonify([
+        {"key": k, "label": v["label"], "columns": v["columns"], "note": v["note"],
+         "has_tournament_picker": v["has_tournament_picker"]}
+        for k, v in SPORTS.items()
+    ])
 
 
 @app.route("/api/leagues")
@@ -448,7 +646,6 @@ def api_leagues():
 
 @app.route("/api/tournaments")
 def api_tournaments():
-    """List individual tournaments inside a tennis category (ATP/WTA/...)."""
     sport = request.args.get("sport")
     league = request.args.get("league")
     if sport not in SPORTS or league not in SPORTS[sport]["leagues"]:
@@ -479,7 +676,7 @@ def index():
 
 
 # ----------------------------------------------------------------------------
-# Front-end (single embedded page)
+# Front-end (single embedded page, generic over sport columns)
 # ----------------------------------------------------------------------------
 PAGE = r"""
 <!doctype html>
@@ -487,12 +684,13 @@ PAGE = r"""
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Racket-Sports Liga-Pro Analyzer</title>
+<title>Sports Liga-Pro Analyzer</title>
 <style>
   :root{
     --bg:#0f1116; --panel:#171a21; --panel2:#1e222b; --line:#2a2f3a;
-    --txt:#e8eaed; --muted:#9aa2b1; --accent:#ff7a1a; --green:#37c46b; --red:#f2545b;
-    --even:#2b6cff; --odd:#c56bff; --yellow:#3a3413; --yellow-txt:#ffe27a; --yellow-row:#2a260f;
+    --txt:#e8eaed; --muted:#9aa2b1; --accent:#ff7a1a; --green:#37c46b;
+    --yellow:#3a3413; --yellow-txt:#ffe27a; --yellow-row:#2a260f;
+    --over:#c56bff; --under:#2b6cff; --home:#37c46b; --draw:#9aa2b1; --away:#f2545b;
   }
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--txt);
@@ -502,7 +700,7 @@ PAGE = r"""
   header h1{font-size:19px;margin:0;font-weight:650;letter-spacing:.2px}
   header .dot{width:10px;height:10px;border-radius:50%;background:var(--accent);
               box-shadow:0 0 0 4px rgba(255,122,26,.15)}
-  .wrap{padding:20px 26px;max-width:1120px;margin:0 auto}
+  .wrap{padding:20px 26px;max-width:1160px;margin:0 auto}
   .sporttabs{display:flex;gap:8px;margin-bottom:14px}
   .sporttab{padding:9px 18px;border:1px solid var(--line);background:var(--panel);
        color:var(--muted);border-radius:10px;cursor:pointer;font-size:14px;font-weight:600;
@@ -541,17 +739,22 @@ PAGE = r"""
   tbody tr:hover{background:#1b1f28}
   tbody tr.decider{background:var(--yellow-row)}
   tbody tr.decider:hover{background:#332d10}
-  tbody tr.decider td.id{color:var(--yellow-txt)}
-  td.game{white-space:normal;min-width:230px}
+  tbody tr.decider td.idcol{color:var(--yellow-txt)}
+  td.gamecol{white-space:normal;min-width:230px}
   .pill{padding:3px 9px;border-radius:999px;font-size:12px;font-weight:600;display:inline-block}
   .pill.even{background:rgba(43,108,255,.16);color:#7aa2ff}
   .pill.odd{background:rgba(197,107,255,.16);color:#c99bff}
+  .pill.over{background:rgba(197,107,255,.16);color:#c99bff}
+  .pill.under{background:rgba(43,108,255,.16);color:#7aa2ff}
+  .pill.home{background:rgba(55,196,107,.16);color:#6fe0a0}
+  .pill.draw{background:rgba(154,162,177,.16);color:#c2c8d3}
+  .pill.away{background:rgba(242,84,91,.16);color:#ff9298}
   .setpill{padding:2px 9px;border-radius:999px;font-size:12.5px;font-weight:700;display:inline-block}
   .setpill.decider{background:var(--yellow);color:var(--yellow-txt);border:1px solid #6b5c1f}
   .setpill.normal{color:var(--muted)}
   .odd-val{font-variant-numeric:tabular-nums;font-weight:650;color:var(--green)}
   .muted{color:var(--muted)}
-  .id{color:var(--muted);font-variant-numeric:tabular-nums}
+  .idcol{color:var(--muted);font-variant-numeric:tabular-nums}
   .status{padding:40px;text-align:center;color:var(--muted)}
   .spinner{width:26px;height:26px;border:3px solid var(--line);border-top-color:var(--accent);
            border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 12px}
@@ -566,7 +769,7 @@ PAGE = r"""
 <body>
 <header>
   <span class="dot"></span>
-  <h1>Racket-Sports Liga-Pro Analyzer</h1>
+  <h1>Sports Liga-Pro Analyzer</h1>
   <span class="muted" style="font-size:13px">finished matches · via sofascore-wrapper 1.1.1</span>
 </header>
 
@@ -588,17 +791,12 @@ PAGE = r"""
   </div>
 
   <div class="cards" id="cards"></div>
-  <div class="legend"><span class="swatch"></span> highlighted rows = match decided in 3 sets</div>
+  <div class="legend" id="legend" style="display:none"><span class="swatch"></span> highlighted rows = match decided in 3 sets</div>
 
   <div class="tablewrap">
     <div id="status" class="status">Pick a league to begin.</div>
     <table id="table" style="display:none">
-      <thead>
-        <tr>
-          <th>ID</th><th>Game</th><th id="metricHead">Total pts</th><th>Even / Odd</th>
-          <th>Winning odd</th><th># Sets</th>
-        </tr>
-      </thead>
+      <thead><tr id="theadRow"></tr></thead>
       <tbody id="tbody"></tbody>
     </table>
   </div>
@@ -625,12 +823,19 @@ async function loadSports(){
   await setSport(sports[0].key);
 }
 
+function renderHeader(){
+  const tr = document.getElementById('theadRow');
+  tr.innerHTML = currentMeta.columns.map(c=>`<th>${c.label}</th>`).join('');
+}
+
 async function setSport(key){
   currentSport = key;
   currentMeta = sports.find(s=>s.key===key) || {};
   document.querySelectorAll('.sporttab').forEach(t=>
     t.classList.toggle('active', t.dataset.key===key));
-  document.getElementById('metricHead').textContent = currentMeta.metric_label || 'Total pts';
+  renderHeader();
+  document.getElementById('legend').style.display = currentMeta.columns.some(c=>c.key==='num_sets') ? 'flex' : 'none';
+
   leagues = await (await fetch(`/api/leagues?sport=${key}`)).json();
   const tabs = document.getElementById('tabs');
   tabs.innerHTML = '';
@@ -693,18 +898,8 @@ document.getElementById('tournamentSelect').addEventListener('change', (e)=>{
 });
 
 function updateNote(){
-  const metric = (currentMeta.metric_label || 'Total points').toLowerCase();
-  document.getElementById('note').innerHTML =
-    `<b>${currentMeta.metric_label || 'Total points'}</b> = sum of ${metric.includes('game')?'games':'points'} across every set (both players). ` +
-    `<b>Even/Odd</b> = parity of that total. ` +
-    `<b>Winning odd</b> = pre-match decimal odd of the player who actually won (Full-time market). ` +
-    `<b># Sets</b> = number of sets played &mdash; rows highlighted yellow went to ${currentMeta.decider_sets || 3} sets (a decider). ` +
-    (currentMeta.has_tournament_picker ? 'Pick a specific tournament above &mdash; ATP/WTA/etc. are categories containing many events. ' : '') +
-    `Data is cached for 5 minutes.`;
+  document.getElementById('note').innerHTML = (currentMeta.note || '') + ' Data is cached for 5 minutes.';
 }
-
-function fmtOdd(o){ return (o===null||o===undefined) ? '<span class="muted">—</span>'
-                                                     : '<span class="odd-val">'+o.toFixed(2)+'</span>'; }
 
 async function load(){
   if(currentMeta.has_tournament_picker && !currentTournamentId){
@@ -719,7 +914,7 @@ async function load(){
   const cards = document.getElementById('cards');
   table.style.display='none'; cards.innerHTML='';
   status.style.display='block';
-  status.innerHTML = '<div class="spinner"></div>Fetching &amp; analysing finished matches… (first load spins up Chromium, can take ~20s)';
+  status.innerHTML = '<div class="spinner"></div>Fetching &amp; analysing finished matches… (first load spins up Chromium, can take ~20-40s)';
 
   try{
     let url = `/api/matches?sport=${currentSport}&league=${currentLeague}&limit=${limit}`;
@@ -730,35 +925,33 @@ async function load(){
       status.innerHTML = '<span class="err">'+data.error+'</span>'; return;
     }
     const rows = data.rows || [];
-    const deciderSets = data.decider_sets || 3;
     if(!rows.length){ status.innerHTML='No finished matches found.'; return; }
 
-    const evenN = rows.filter(r=>r.even_odd==='Even').length;
-    const oddN  = rows.length - evenN;
-    const avgPts = (rows.reduce((s,r)=>s+r.total_points,0)/rows.length).toFixed(1);
-    const odds = rows.map(r=>r.winning_odd).filter(v=>v!=null);
-    const avgOdd = odds.length ? (odds.reduce((s,v)=>s+v,0)/odds.length).toFixed(2) : '—';
-    const deciderN = rows.filter(r=>r.num_sets===deciderSets).length;
-    cards.innerHTML = `
-      <div class="card"><div class="k">Matches</div><div class="v">${rows.length}</div></div>
-      <div class="card"><div class="k">Even / Odd</div><div class="v">${evenN} / ${oddN}</div></div>
-      <div class="card"><div class="k">Avg ${data.metric_label.toLowerCase()}</div><div class="v">${avgPts}</div></div>
-      <div class="card"><div class="k">Avg winning odd</div><div class="v">${avgOdd}</div></div>
-      <div class="card"><div class="k">${deciderSets}-set deciders</div><div class="v">${deciderN}</div></div>`;
+    cards.innerHTML = (data.summary||[]).map(c=>
+      `<div class="card"><div class="k">${c.label}</div><div class="v">${c.value}</div></div>`).join('');
 
     const tb = document.getElementById('tbody'); tb.innerHTML='';
     rows.forEach(r=>{
-      const isDecider = r.num_sets === deciderSets;
       const tr = document.createElement('tr');
-      if(isDecider) tr.className = 'decider';
-      tr.innerHTML = `
-        <td class="id">${r.id}</td>
-        <td class="game">${r.game}
-            <div class="winner">${r.set_score} · won: ${r.winner}</div></td>
-        <td><b>${r.total_points}</b></td>
-        <td><span class="pill ${r.even_odd.toLowerCase()}">${r.even_odd}</span></td>
-        <td>${fmtOdd(r.winning_odd)}</td>
-        <td><span class="setpill ${isDecider?'decider':'normal'}">${r.num_sets}</span></td>`;
+      if(r.highlight === 'decider') tr.className = 'decider';
+      tr.innerHTML = currentMeta.columns.map(col=>{
+        const c = r[col.key];
+        if(c === undefined || c === null) return '<td>—</td>';
+        if(col.key === 'id') return `<td class="idcol">${c.text}</td>`;
+        if(col.key === 'game'){
+          return `<td class="gamecol">${c.text}${c.sub?`<div class="winner">${c.sub}</div>`:''}</td>`;
+        }
+        if(col.key === 'num_sets'){
+          return `<td><span class="setpill ${c.variant}">${c.text}</span></td>`;
+        }
+        if(c.variant === 'odd-value'){
+          return `<td><span class="odd-val">${c.text}</span></td>`;
+        }
+        if(c.variant){
+          return `<td><span class="pill ${c.variant}">${c.text}</span></td>`;
+        }
+        return `<td>${c.text}</td>`;
+      }).join('');
       tb.appendChild(tr);
     });
     status.style.display='none'; table.style.display='table';
