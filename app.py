@@ -6,10 +6,10 @@ Fetches FINISHED matches from SofaScore (via `sofascore-wrapper==1.1.1`,
 which drives a headless Chromium so it survives SofaScore's 403-on-plain-REST
 protection) and serves a single web page with a per-sport analysis table.
 
-    Table tennis / Tennis: id, game, total points/games, even/odd,
-                            winning odd, # sets (3-set deciders highlighted)
     Football:               id, game, winner (1/X/2), winner odd,
                             goals (O/U 2.5), corners (O/U 9.5), cards (O/U 5.5)
+    Tennis:                 id, game, total games, even/odd,
+                            winning odd, # sets (3-set deciders highlighted)
 
 Each sport declares its own `columns` and an `analyzer` tag; rows are built
 server-side as {key: {"text":..., "variant":..., "sub":...}} cells so the
@@ -27,54 +27,90 @@ import time
 from datetime import date
 from flask import Flask, jsonify, request, render_template_string
 
-from sofascore_wrapper.api import SofascoreAPI
+from curl_cffi.requests import AsyncSession
 from sofascore_wrapper.league import League
 from sofascore_wrapper.match import Match
 from sofascore_wrapper.search import Search
+from sofascore_wrapper.team import Team
 from sofascore_wrapper.tennis import Tennis
 
 app = Flask(__name__)
+
+SOFASCORE_BASE = "https://www.sofascore.com/api/v1"
+
+
+class SofascoreAPI:
+    """Drop-in replacement for sofascore_wrapper.api.SofascoreAPI.
+
+    The wrapper's own implementation drives headless Chromium via Playwright,
+    but SofaScore's WAF now blocks that browser signature outright (confirmed:
+    identical 403 on the homepage itself, reproduced across unrelated
+    networks/IPs -- not an IP block). curl_cffi impersonates a real Chrome
+    TLS handshake instead, which SofaScore's WAF accepts, so every
+    sofascore_wrapper class (League/Match/Search/Team/Tennis) keeps working
+    unmodified -- they only ever call `.api._get(endpoint)` / `.api.close()`.
+    """
+
+    def __init__(self):
+        self._session = AsyncSession(impersonate="chrome124")
+
+    async def _get(self, endpoint):
+        resp = await self._session.get(f"{SOFASCORE_BASE}{endpoint}")
+        if resp.status_code == 200:
+            return resp.json()
+        raise Exception(f"Failed to fetch {endpoint}: {resp.status_code}")
+
+    async def _raw_get(self, url):
+        resp = await self._session.get(url)
+        if resp.status_code == 200:
+            return resp.json()
+        raise Exception(f"Failed to fetch {url}: {resp.status_code}")
+
+    async def close(self):
+        await self._session.close()
 
 # ----------------------------------------------------------------------------
 # Sports & competitions.
 #
 # `analyzer`:
-#   "sets"      -> table tennis / tennis: periods are per-set points/games.
+#   "sets"      -> tennis: periods are per-set games.
 #   "football"  -> winner (1/X/2) + goals/corners/cards vs a fixed line.
 #
-# Table tennis & football "leagues" map straight to one SofaScore
-# unique-tournament (resolved via search + country match, or pin
-# `tournament_id` to skip search).
+# Football "leagues" map straight to one SofaScore unique-tournament
+# (resolved via search + country match, or pin `tournament_id` to skip search).
 #
 # Tennis "leagues" map to a SofaScore *category* (ATP/WTA/...) containing
 # many individual tournaments -> pick one from the dropdown (has_tournament_picker).
 # ----------------------------------------------------------------------------
 SPORTS = {
-    "table-tennis": {
-        "label": "Table Tennis",
-        "sport_key": "table-tennis",
-        "analyzer": "sets",
-        "metric_label": "Total points",
-        "decider_sets": 3,
+    "football": {
+        "label": "Football",
+        "sport_key": "football",
+        "analyzer": "football",
+        "metric_label": None,
+        "decider_sets": None,
         "has_tournament_picker": False,
         "columns": [
             {"key": "id", "label": "ID"},
             {"key": "game", "label": "Game"},
-            {"key": "total_points", "label": "Total points"},
-            {"key": "even_odd", "label": "Even / Odd"},
-            {"key": "winning_odd", "label": "Winning odd"},
-            {"key": "num_sets", "label": "# Sets"},
+            {"key": "winner", "label": "Winner (1X2)"},
+            {"key": "winner_odd", "label": "Winner odd"},
+            {"key": "total_goals", "label": "Goals (O/U 2.5)"},
+            {"key": "btts", "label": "Both scored"},
+            {"key": "total_corners", "label": "Corners (O/U 9.5)"},
+            {"key": "total_cards", "label": "Cards (O/U 5.5)"},
         ],
-        "note": ("<b>Total points</b> = sum of points across every set (both players). "
-                 "<b>Even/Odd</b> = parity of that total. "
-                 "<b>Winning odd</b> = pre-match decimal odd of the player who actually won. "
-                 "<b># Sets</b> = sets played &mdash; rows highlighted yellow went to 3 sets (a decider)."),
+        "note": ("<b>Winner</b> = 1 (home), X (draw), 2 (away). "
+                 "<b>Winner odd</b> = pre-match decimal odd of the outcome that actually happened. "
+                 "<b>Both scored</b> = whether both teams found the net (BTTS). "
+                 "<b>Goals/Corners/Cards</b> = the match's actual total vs. the fixed line, "
+                 "shown as Over/Under. Corners/cards show N/A if SofaScore has no match statistics for that game."),
         "leagues": {
-            "belarus-liga-pro":  {"label": "Belarus · Liga Pro",  "country": "Belarus",        "search": "Liga Pro",  "tournament_id": None},
-            "czech-liga-pro":    {"label": "Czech · Liga Pro",    "country": "Czech Republic", "search": "Liga Pro",  "tournament_id": None},
-            "czech-tt-cup":      {"label": "Czech · TT Cup",      "country": "Czech Republic", "search": "TT Cup",    "tournament_id": None},
-            "russia-liga-pro":   {"label": "Russia · Liga Pro",   "country": "Russia",         "search": "Liga Pro",  "tournament_id": None},
-            "ukraine-setka-cup": {"label": "Ukraine · Setka Cup", "country": "Ukraine",        "search": "Setka Cup", "tournament_id": None},
+            "premier-league": {"label": "Premier League", "country": "England", "search": "Premier League", "tournament_id": None},
+            "la-liga":        {"label": "La Liga",        "country": "Spain",   "search": "LaLiga",         "tournament_id": None},
+            "serie-a":        {"label": "Serie A",        "country": "Italy",   "search": "Serie A",        "tournament_id": None},
+            "bundesliga":     {"label": "Bundesliga",     "country": "Germany", "search": "Bundesliga",     "tournament_id": None},
+            "ligue-1":        {"label": "Ligue 1",        "country": "France",  "search": "Ligue 1",        "tournament_id": None},
         },
     },
     "tennis": {
@@ -105,55 +141,30 @@ SPORTS = {
             "itf-women":  {"label": "ITF Women",  "match": ["itf women", "itf w"], "category_id": None},
         },
     },
-    "football": {
-        "label": "Football",
-        "sport_key": "football",
-        "analyzer": "football",
-        "metric_label": None,
-        "decider_sets": None,
-        "has_tournament_picker": False,
-        "columns": [
-            {"key": "id", "label": "ID"},
-            {"key": "game", "label": "Game"},
-            {"key": "winner", "label": "Winner (1X2)"},
-            {"key": "winner_odd", "label": "Winner odd"},
-            {"key": "total_goals", "label": "Goals (O/U 2.5)"},
-            {"key": "total_corners", "label": "Corners (O/U 9.5)"},
-            {"key": "total_cards", "label": "Cards (O/U 5.5)"},
-        ],
-        "note": ("<b>Winner</b> = 1 (home), X (draw), 2 (away). "
-                 "<b>Winner odd</b> = pre-match decimal odd of the outcome that actually happened. "
-                 "<b>Goals/Corners/Cards</b> = the match's actual total vs. the fixed line, "
-                 "shown as Over/Under. Corners/cards show N/A if SofaScore has no match statistics for that game."),
-        "leagues": {
-            "premier-league": {"label": "Premier League", "country": "England", "search": "Premier League", "tournament_id": None},
-            "la-liga":        {"label": "La Liga",        "country": "Spain",   "search": "LaLiga",         "tournament_id": None},
-            "serie-a":        {"label": "Serie A",        "country": "Italy",   "search": "Serie A",        "tournament_id": None},
-            "bundesliga":     {"label": "Bundesliga",     "country": "Germany", "search": "Bundesliga",     "tournament_id": None},
-            "ligue-1":        {"label": "Ligue 1",        "country": "France",  "search": "Ligue 1",        "tournament_id": None},
-        },
-    },
 }
 
 DEFAULT_LIMIT = 25
-CACHE_TTL = 300
-META_CACHE_TTL = 3600
-ACTIVE_TTL = 120
+CACHE_TTL = 1800
+META_CACHE_TTL = 21600
+ACTIVE_TTL = 600
 
 _match_cache = {}             # (sport,league,tournament_id,limit) -> (ts, payload)
 _id_cache = {}                 # (sport,league) -> resolved tournament_id
 _category_cache = {}           # (sport,league) -> (ts, category_id)
 _tournament_list_cache = {}    # (sport,league) -> (ts, (tournaments, category_id))
 _active_cache = {}             # sport_key -> (ts, set(tournament_id) | None)
+_team_cache = {}                # (team_id,limit) -> (ts, payload)
 
 
 # ----------------------------------------------------------------------------
 # Pure helpers -- no network, unit-testable.
 # ----------------------------------------------------------------------------
-def cell(text, variant=None, sub=None):
+def cell(text, variant=None, sub=None, **extra):
     c = {"text": text, "variant": variant}
     if sub:
         c["sub"] = sub
+    if extra:
+        c.update(extra)
     return c
 
 
@@ -167,7 +178,7 @@ def _to_number(x):
 
 
 def _period_points(score: dict):
-    """Per-set tallies (points for table tennis, games for tennis)."""
+    """Per-set tallies (games for tennis)."""
     pts = []
     i = 1
     while True:
@@ -320,8 +331,10 @@ def analyze_row_sets(event: dict, winning_odd, decider_sets: int) -> dict:
 
 
 def analyze_row_football(event: dict, winner_odd, corners, cards) -> dict:
-    home = event.get("homeTeam", {}).get("name", "?")
-    away = event.get("awayTeam", {}).get("name", "?")
+    home_team = event.get("homeTeam", {}) or {}
+    away_team = event.get("awayTeam", {}) or {}
+    home = home_team.get("name", "?")
+    away = away_team.get("name", "?")
     hs = event.get("homeScore", {}) or {}
     as_ = event.get("awayScore", {}) or {}
     home_goals = int(hs.get("current", 0) or 0)
@@ -343,6 +356,10 @@ def analyze_row_football(event: dict, winner_odd, corners, cards) -> dict:
     goals_variant = "over" if total_goals > 2.5 else "under"
     goals_text = f'{total_goals} ({"Over" if goals_variant == "over" else "Under"} 2.5)'
 
+    btts = home_goals > 0 and away_goals > 0
+    btts_variant = "yes" if btts else "no"
+    btts_text = "Yes" if btts else "No"
+
     if corners is not None:
         total_corners = corners[0] + corners[1]
         corners_variant = "over" if total_corners > 9.5 else "under"
@@ -359,16 +376,20 @@ def analyze_row_football(event: dict, winner_odd, corners, cards) -> dict:
 
     return {
         "id": event.get("id"),
-        "game": cell(f"{home} vs {away}", sub=f"{home_goals}-{away_goals} FT"),
+        "game": cell(f"{home} vs {away}", sub=f"{home_goals}-{away_goals} FT",
+                     home_id=home_team.get("id"), away_id=away_team.get("id"),
+                     home_name=home, away_name=away),
         "winner": cell(outcome, variant=variant),
         "winner_odd": cell(f"{winner_odd:.2f}" if winner_odd is not None else "—",
                             variant="odd-value" if winner_odd is not None else None),
         "total_goals": cell(goals_text, variant=goals_variant),
+        "btts": cell(btts_text, variant=btts_variant),
         "total_corners": cell(corners_text, variant=corners_variant),
         "total_cards": cell(cards_text, variant=cards_variant),
         "highlight": None,
         "_raw": {"outcome": outcome, "winner_odd": winner_odd,
                   "total_goals": total_goals, "goals_variant": goals_variant,
+                  "btts": btts,
                   "total_corners": total_corners, "corners_variant": corners_variant,
                   "total_cards": total_cards, "cards_variant": cards_variant},
     }
@@ -397,6 +418,7 @@ def build_summary(sport_cfg, rows):
         draw_n = sum(1 for r in raws if r["outcome"] == "X")
         away_n = sum(1 for r in raws if r["outcome"] == "2")
         over_goals = sum(1 for r in raws if r["goals_variant"] == "over")
+        btts_yes = sum(1 for r in raws if r["btts"])
         corners_known = [r for r in raws if r["corners_variant"] is not None]
         cards_known = [r for r in raws if r["cards_variant"] is not None]
         over_corners = sum(1 for r in corners_known if r["corners_variant"] == "over")
@@ -405,6 +427,7 @@ def build_summary(sport_cfg, rows):
             {"label": "Matches", "value": str(n)},
             {"label": "Home / Draw / Away", "value": f"{home_n} / {draw_n} / {away_n}"},
             {"label": "Over 2.5 goals", "value": f"{over_goals}/{n}"},
+            {"label": "Both scored", "value": f"{btts_yes}/{n}"},
             {"label": "Over 9.5 corners", "value": f"{over_corners}/{len(corners_known)}" if corners_known else "—"},
             {"label": "Over 5.5 cards", "value": f"{over_cards}/{len(cards_known)}" if cards_known else "—"},
         ]
@@ -516,10 +539,15 @@ async def get_tournament_list(sport_key, league_key):
             tournaments = parse_tournaments(raw)
             category_id = cid
             _tournament_list_cache[cache_key] = (time.time(), (tournaments, category_id))
+        except Exception as e:
+            return {"category_id": None, "tournaments": [], "error": f"SofaScore request failed: {e}"}
         finally:
             await api.close()
 
-    active_ids = await get_active_tournament_ids(SPORTS[sport_key]["sport_key"])
+    try:
+        active_ids = await get_active_tournament_ids(SPORTS[sport_key]["sport_key"])
+    except Exception:
+        active_ids = None
     tagged = []
     for t in tournaments:
         active = None if active_ids is None else (t["id"] in active_ids)
@@ -550,6 +578,133 @@ async def fetch_finished(api, tournament_id, limit):
             break
         page += 1
     return finished[:limit]
+
+
+async def fetch_team_recent_events(api, team_id, max_events):
+    """Most-recent-first finished events for a team, paginating `/team/{id}/events/last/{page}`.
+
+    Each page comes back oldest-to-newest for that page's window, so each page is
+    reversed before being appended (page 0 = most recent window, etc.)."""
+    all_events, page = [], 0
+    while len(all_events) < max_events and page < 6:
+        try:
+            data = await api._get(f"/team/{team_id}/events/last/{page}")
+        except Exception:
+            break
+        events = data.get("events", []) or []
+        if not events:
+            break
+        for ev in reversed(events):
+            if (ev.get("status", {}) or {}).get("type") == "finished":
+                all_events.append(ev)
+        if not data.get("hasNextPage"):
+            break
+        page += 1
+    return all_events[:max_events]
+
+
+def _avg(vals):
+    vals = [v for v in vals if v is not None]
+    return round(sum(vals) / len(vals), 2) if vals else None
+
+
+async def build_team_match_row(api, team_id, event):
+    home = event.get("homeTeam", {}) or {}
+    away = event.get("awayTeam", {}) or {}
+    is_home = home.get("id") == team_id
+    opponent = away if is_home else home
+    hs = event.get("homeScore", {}) or {}
+    as_ = event.get("awayScore", {}) or {}
+    gf = int((hs if is_home else as_).get("current", 0) or 0)
+    ga = int((as_ if is_home else hs).get("current", 0) or 0)
+    result = "W" if gf > ga else "L" if gf < ga else "D"
+
+    try:
+        stats_raw = await Match(api, event["id"]).stats()
+        parsed = parse_football_stats(stats_raw)
+    except Exception:
+        parsed = {"corners": None, "cards": None}
+
+    corners_for = corners_against = cards_for = cards_against = None
+    if parsed["corners"] is not None:
+        h, a = parsed["corners"]
+        corners_for, corners_against = (h, a) if is_home else (a, h)
+    if parsed["cards"] is not None:
+        h, a = parsed["cards"]
+        cards_for, cards_against = (h, a) if is_home else (a, h)
+
+    return {
+        "id": event.get("id"),
+        "date": event.get("startTimestamp"),
+        "opponent": opponent.get("name", "?"),
+        "venue": "H" if is_home else "A",
+        "goals_for": gf,
+        "goals_against": ga,
+        "score": f"{gf}-{ga}",
+        "result": result,
+        "corners_for": corners_for,
+        "corners_against": corners_against,
+        "cards_for": cards_for,
+        "cards_against": cards_against,
+    }
+
+
+def build_team_summary(rows):
+    n = len(rows)
+    if n == 0:
+        return {"matches": 0}
+    wins = sum(1 for r in rows if r["result"] == "W")
+    draws = sum(1 for r in rows if r["result"] == "D")
+    losses = sum(1 for r in rows if r["result"] == "L")
+    btts_n = sum(1 for r in rows if r["goals_for"] > 0 and r["goals_against"] > 0)
+    return {
+        "matches": n,
+        "wins": wins, "draws": draws, "losses": losses,
+        "avg_goals_for": _avg([r["goals_for"] for r in rows]),
+        "avg_goals_against": _avg([r["goals_against"] for r in rows]),
+        "clean_sheets": sum(1 for r in rows if r["goals_against"] == 0),
+        "btts_pct": round(100 * btts_n / n, 1),
+        "avg_corners_for": _avg([r["corners_for"] for r in rows]),
+        "avg_corners_against": _avg([r["corners_against"] for r in rows]),
+        "avg_cards_for": _avg([r["cards_for"] for r in rows]),
+        "avg_cards_against": _avg([r["cards_against"] for r in rows]),
+    }
+
+
+async def build_team_stats_payload(team_id, limit):
+    api = SofascoreAPI()
+    try:
+        try:
+            info = await Team(api, team_id).get_team()
+            team_name = (info.get("team") or {}).get("name", "?")
+        except Exception:
+            team_name = "?"
+
+        events = await fetch_team_recent_events(api, team_id, limit)
+        if not events:
+            return {"team_id": team_id, "team_name": team_name, "matches": [],
+                     "summary": {"matches": 0}, "error": "No recent finished matches found"}
+
+        rows = [await build_team_match_row(api, team_id, ev) for ev in events]
+        summary = build_team_summary(rows)
+        return {"team_id": team_id, "team_name": team_name, "matches": rows[:5],
+                 "summary": summary, "error": None}
+    except Exception as e:
+        return {"team_id": team_id, "team_name": "?", "matches": [],
+                 "summary": {"matches": 0}, "error": f"SofaScore request failed: {e}"}
+    finally:
+        await api.close()
+
+
+def get_team_stats(team_id, limit):
+    cache_key = (team_id, limit)
+    hit = _team_cache.get(cache_key)
+    if hit and time.time() - hit[0] < CACHE_TTL:
+        return hit[1]
+    payload = asyncio.run(build_team_stats_payload(team_id, limit))
+    if payload.get("error") is None:
+        _team_cache[cache_key] = (time.time(), payload)
+    return payload
 
 
 async def build_row(api, sport_cfg, event):
@@ -610,6 +765,9 @@ async def build_match_payload(sport_key, league_key, tournament_id, limit):
 
         return {"sport": sport_key, "league": cfg["label"], "tournament_id": tid,
                 "rows": display_rows, "summary": summary, "error": None}
+    except Exception as e:
+        return {"sport": sport_key, "league": cfg["label"], "tournament_id": tournament_id,
+                "rows": [], "summary": [], "error": f"SofaScore request failed: {e}"}
     finally:
         await api.close()
 
@@ -620,7 +778,8 @@ def get_match_data(sport_key, league_key, tournament_id, limit):
     if hit and time.time() - hit[0] < CACHE_TTL:
         return hit[1]
     payload = asyncio.run(build_match_payload(sport_key, league_key, tournament_id, limit))
-    _match_cache[cache_key] = (time.time(), payload)
+    if payload.get("error") is None:
+        _match_cache[cache_key] = (time.time(), payload)
     return payload
 
 
@@ -652,7 +811,10 @@ def api_tournaments():
         return jsonify({"error": "unknown sport/league"}), 400
     if not SPORTS[sport]["has_tournament_picker"]:
         return jsonify({"error": "this sport has no tournament picker"}), 400
-    return jsonify(asyncio.run(get_tournament_list(sport, league)))
+    try:
+        return jsonify(asyncio.run(get_tournament_list(sport, league)))
+    except Exception as e:
+        return jsonify({"category_id": None, "tournaments": [], "error": f"SofaScore request failed: {e}"})
 
 
 @app.route("/api/matches")
@@ -667,7 +829,24 @@ def api_matches():
         return jsonify({"error": "unknown league"}), 400
     if SPORTS[sport]["has_tournament_picker"] and not tournament_id:
         return jsonify({"error": "tournament_id required for this sport"}), 400
-    return jsonify(get_match_data(sport, league, tournament_id, limit))
+    try:
+        return jsonify(get_match_data(sport, league, tournament_id, limit))
+    except Exception as e:
+        return jsonify({"sport": sport, "league": league, "tournament_id": tournament_id,
+                         "rows": [], "summary": [], "error": f"SofaScore request failed: {e}"})
+
+
+@app.route("/api/team_stats")
+def api_team_stats():
+    team_id = request.args.get("team_id", type=int)
+    if not team_id:
+        return jsonify({"error": "team_id required"}), 400
+    limit = min(max(int(request.args.get("limit", 10)), 5), 20)
+    try:
+        return jsonify(get_team_stats(team_id, limit))
+    except Exception as e:
+        return jsonify({"team_id": team_id, "team_name": "?", "matches": [],
+                         "summary": {"matches": 0}, "error": f"SofaScore request failed: {e}"})
 
 
 @app.route("/")
@@ -749,6 +928,8 @@ PAGE = r"""
   .pill.home{background:rgba(55,196,107,.16);color:#6fe0a0}
   .pill.draw{background:rgba(154,162,177,.16);color:#c2c8d3}
   .pill.away{background:rgba(242,84,91,.16);color:#ff9298}
+  .pill.yes{background:rgba(55,196,107,.16);color:#6fe0a0}
+  .pill.no{background:rgba(154,162,177,.16);color:#c2c8d3}
   .setpill{padding:2px 9px;border-radius:999px;font-size:12.5px;font-weight:700;display:inline-block}
   .setpill.decider{background:var(--yellow);color:var(--yellow-txt);border:1px solid #6b5c1f}
   .setpill.normal{color:var(--muted)}
@@ -764,6 +945,34 @@ PAGE = r"""
   .winner{font-size:12px;color:var(--muted)}
   .legend{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted);margin:2px 0 16px}
   .swatch{width:12px;height:12px;border-radius:3px;background:var(--yellow);border:1px solid #6b5c1f}
+  .teamlink{cursor:pointer;border-bottom:1px dotted var(--muted)}
+  .teamlink:hover{color:var(--accent);border-bottom-color:var(--accent)}
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;
+                 align-items:center;justify-content:center;z-index:50;padding:20px}
+  .modal-overlay.open{display:flex}
+  .modal{background:var(--panel);border:1px solid var(--line);border-radius:14px;
+         max-width:640px;width:100%;max-height:85vh;overflow-y:auto;padding:22px 24px}
+  .modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+  .modal-head h2{margin:0;font-size:18px}
+  .modal-close{background:var(--panel2);border:1px solid var(--line);color:var(--txt);
+               border-radius:8px;width:30px;height:30px;cursor:pointer;font-size:16px;line-height:1}
+  .modal-close:hover{border-color:var(--accent)}
+  .modal .cards{margin-bottom:18px}
+  .modal .card{min-width:0}
+  .modal h3{font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;
+            margin:0 0 10px}
+  .last5{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+  .last5 li{display:flex;align-items:center;gap:10px;background:var(--panel2);
+            border:1px solid var(--line);border-radius:10px;padding:9px 12px;font-size:13.5px}
+  .resbadge{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;
+            justify-content:center;font-weight:700;font-size:12px;flex-shrink:0}
+  .resbadge.W{background:rgba(55,196,107,.2);color:#6fe0a0}
+  .resbadge.D{background:rgba(154,162,177,.2);color:#c2c8d3}
+  .resbadge.L{background:rgba(242,84,91,.2);color:#ff9298}
+  .last5 .opp{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .last5 .venue{color:var(--muted);font-size:12px}
+  .last5 .score{font-variant-numeric:tabular-nums;font-weight:650}
+  .modal-status{text-align:center;color:var(--muted);padding:30px 0}
 </style>
 </head>
 <body>
@@ -802,6 +1011,16 @@ PAGE = r"""
   </div>
 
   <div class="note" id="note"></div>
+</div>
+
+<div class="modal-overlay" id="teamModalOverlay">
+  <div class="modal">
+    <div class="modal-head">
+      <h2 id="teamModalTitle">Team</h2>
+      <button class="modal-close" id="teamModalClose">×</button>
+    </div>
+    <div id="teamModalBody"><div class="modal-status">Loading…</div></div>
+  </div>
 </div>
 
 <script>
@@ -898,7 +1117,7 @@ document.getElementById('tournamentSelect').addEventListener('change', (e)=>{
 });
 
 function updateNote(){
-  document.getElementById('note').innerHTML = (currentMeta.note || '') + ' Data is cached for 5 minutes.';
+  document.getElementById('note').innerHTML = (currentMeta.note || '') + ' Data is cached for 30 minutes.';
 }
 
 async function load(){
@@ -939,7 +1158,13 @@ async function load(){
         if(c === undefined || c === null) return '<td>—</td>';
         if(col.key === 'id') return `<td class="idcol">${c.text}</td>`;
         if(col.key === 'game'){
-          return `<td class="gamecol">${c.text}${c.sub?`<div class="winner">${c.sub}</div>`:''}</td>`;
+          let text = escapeHtml(c.text);
+          if(c.home_id && c.away_id){
+            text = `<span class="teamlink" data-id="${c.home_id}" data-name="${escapeHtml(c.home_name)}">${escapeHtml(c.home_name)}</span>` +
+                   ` vs ` +
+                   `<span class="teamlink" data-id="${c.away_id}" data-name="${escapeHtml(c.away_name)}">${escapeHtml(c.away_name)}</span>`;
+          }
+          return `<td class="gamecol">${text}${c.sub?`<div class="winner">${c.sub}</div>`:''}</td>`;
         }
         if(col.key === 'num_sets'){
           return `<td><span class="setpill ${c.variant}">${c.text}</span></td>`;
@@ -961,6 +1186,78 @@ async function load(){
 }
 
 document.getElementById('reload').onclick = ()=>{ load(); };
+
+function escapeHtml(s){
+  return String(s==null?'':s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+
+const teamModalOverlay = document.getElementById('teamModalOverlay');
+const teamModalTitle = document.getElementById('teamModalTitle');
+const teamModalBody = document.getElementById('teamModalBody');
+
+function closeTeamModal(){ teamModalOverlay.classList.remove('open'); }
+document.getElementById('teamModalClose').onclick = closeTeamModal;
+teamModalOverlay.addEventListener('click', e=>{ if(e.target === teamModalOverlay) closeTeamModal(); });
+document.addEventListener('keydown', e=>{ if(e.key === 'Escape') closeTeamModal(); });
+
+document.getElementById('tbody').addEventListener('click', e=>{
+  const el = e.target.closest('.teamlink');
+  if(!el) return;
+  openTeamModal(el.dataset.id, el.dataset.name);
+});
+
+function statCard(label, value){
+  return `<div class="card"><div class="k">${label}</div><div class="v">${value}</div></div>`;
+}
+
+async function openTeamModal(teamId, teamName){
+  teamModalTitle.textContent = teamName || 'Team';
+  teamModalBody.innerHTML = '<div class="modal-status"><div class="spinner"></div>Loading team stats…</div>';
+  teamModalOverlay.classList.add('open');
+  try{
+    const res = await fetch(`/api/team_stats?team_id=${teamId}&limit=10`);
+    const data = await res.json();
+    if(teamModalTitle.textContent !== (teamName || 'Team')) return; // stale response, another team opened meanwhile
+    if(data.team_name) teamModalTitle.textContent = data.team_name;
+    const s = data.summary || {};
+    if(!s.matches){
+      teamModalBody.innerHTML = `<div class="modal-status">${escapeHtml(data.error || 'No recent finished matches found.')}</div>`;
+      return;
+    }
+    const cardsHtml = [
+      statCard('Matches', s.matches),
+      statCard('W / D / L', `${s.wins} / ${s.draws} / ${s.losses}`),
+      statCard('Avg goals for', s.avg_goals_for ?? '—'),
+      statCard('Avg goals against', s.avg_goals_against ?? '—'),
+      statCard('Clean sheets', s.clean_sheets),
+      statCard('Both scored', `${s.btts_pct ?? '—'}%`),
+      statCard('Avg corners for', s.avg_corners_for ?? 'N/A'),
+      statCard('Avg corners against', s.avg_corners_against ?? 'N/A'),
+      statCard('Avg cards for', s.avg_cards_for ?? 'N/A'),
+      statCard('Avg cards against', s.avg_cards_against ?? 'N/A'),
+    ].join('');
+
+    const last5 = (data.matches || []).map(m=>{
+      const date = m.date ? new Date(m.date*1000).toLocaleDateString() : '';
+      return `<li>
+        <span class="resbadge ${m.result}">${m.result}</span>
+        <span class="opp">${m.venue==='H'?'vs':'@'} ${escapeHtml(m.opponent)}</span>
+        <span class="score">${escapeHtml(m.score)}</span>
+        <span class="venue">${escapeHtml(date)}</span>
+      </li>`;
+    }).join('');
+
+    teamModalBody.innerHTML = `
+      <div class="cards">${cardsHtml}</div>
+      <h3>Last ${data.matches.length} games</h3>
+      <ul class="last5">${last5}</ul>
+      <div class="note">Stats computed over the team's last ${s.matches} finished matches (all competitions). Corners/cards show N/A if SofaScore has no statistics for that game.</div>
+    `;
+  }catch(e){
+    teamModalBody.innerHTML = `<div class="modal-status err">Request failed: ${escapeHtml(e.message)}</div>`;
+  }
+}
+
 loadSports();
 </script>
 </body>
