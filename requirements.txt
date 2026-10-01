@@ -3,3 +3,4 @@ gunicorn>=21.2
 sofascore-wrapper==1.1.1
 playwright>=1.40
 curl_cffi>=0.7
+python-dotenv>=1.0

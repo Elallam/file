@@ -2,14 +2,23 @@
 Racket-Sports & Football Liga-Pro Analyzer
 ============================================
 
-Fetches FINISHED matches from SofaScore (via `sofascore-wrapper==1.1.1`,
-which drives a headless Chromium so it survives SofaScore's 403-on-plain-REST
-protection) and serves a single web page with a per-sport analysis table.
+Fetches FINISHED matches from SofaScore -- via the "SofaSport" RapidAPI proxy
+(sportapi7.p.rapidapi.com), a paid, legitimate, authenticated mirror of
+SofaScore's own API (same JSON schema, same endpoint paths) -- and serves a
+single web page with a per-sport analysis table. Direct calls to sofascore.com
+are blocked by their WAF (see SofascoreAPI docstring below for the history);
+routing through RapidAPI sidesteps that entirely.
 
     Football:               id, game, winner (1/X/2), winner odd,
-                            goals (O/U 2.5), corners (O/U 9.5), cards (O/U 5.5)
+                            goals (O/U 2.5), corners (O/U 9.5), cards (O/U 3.5)
+    Baseball (MLB):          id, game, winner (1/2), winner odd,
+                            total runs (O/U 8.5), handicap (run line +/-1.5)
     Tennis:                 id, game, total games, even/odd,
                             winning odd, # sets (3-set deciders highlighted)
+    Table Tennis:           id, game, total points, even/odd,
+                            winning odd, # sets (3-set deciders highlighted)
+
+No sport is auto-loaded on first page load -- pick a sport tab to fetch data.
 
 Each sport declares its own `columns` and an `analyzer` tag; rows are built
 server-side as {key: {"text":..., "variant":..., "sub":...}} cells so the
@@ -23,42 +32,133 @@ Run:
 """
 
 import asyncio
+import os
+import re
 import time
 from datetime import date
+
+from dotenv import load_dotenv
 from flask import Flask, jsonify, request, render_template_string
 
 from curl_cffi.requests import AsyncSession
 from sofascore_wrapper.league import League
 from sofascore_wrapper.match import Match
-from sofascore_wrapper.search import Search
 from sofascore_wrapper.team import Team
 from sofascore_wrapper.tennis import Tennis
+
+load_dotenv()
 
 app = Flask(__name__)
 
 SOFASCORE_BASE = "https://www.sofascore.com/api/v1"
+
+# "SofaSport" on RapidAPI (sofasport.p.rapidapi.com) -- a paid, authenticated
+# mirror of SofaScore's own data. Unlike the two RapidAPI proxies tried
+# before this one, it isn't SofaScore's own path shape (just renamed) -- it's
+# a query-parameter API where every response is wrapped as {"data": ...}.
+# Documented at https://sofasport.rapi.one/Complete_Tutorial and verified
+# live against each endpoint below. _translate_endpoint maps the handful of
+# exact SofaScore-native paths this app issues (via sofascore_wrapper's
+# League/Match classes, and our own raw _get calls in fetch_finished) to
+# (path, query params, reshape function) -- the reshape function unwraps
+# {"data": ...} back into the native top-level key shape
+# (uniqueTournament/seasons/events+hasNextPage/markets/statistics) the rest
+# of this file already expects. Endpoints not covered here (team lookups,
+# tennis categories, category tournament listings) aren't documented on this
+# API either -- passed through unchanged, which 404s and fails gracefully via
+# existing try/except paths (team-stats click-through, tennis tournament
+# picker, and the cosmetic "active/live" tournament highlighting).
+RAPIDAPI_HOST = "sofasport.p.rapidapi.com"
+RAPIDAPI_BASE = f"https://{RAPIDAPI_HOST}"
+RAPIDAPI_KEY = os.environ.get("RAPIDAPI_KEY")
+
+
+# SofaScore's numeric sport IDs, for the /sport/{slug}/categories translation
+# below -- only the ones this app actually requests that way (tennis).
+_SPORT_IDS = {"tennis": 5, "football": 1}
+
+
+def _translate_endpoint(endpoint):
+    """SofaScore-native endpoint -> (path, query params, reshape(payload))."""
+    m = re.match(r"^/unique-tournament/(\d+)$", endpoint)
+    if m:
+        return ("/v1/unique-tournaments/data", {"unique_tournament_id": m.group(1)},
+                lambda p: {"uniqueTournament": p.get("data")})
+
+    m = re.match(r"^/unique-tournament/(\d+)/seasons$", endpoint)
+    if m:
+        return ("/v1/unique-tournaments/seasons", {"unique_tournament_id": m.group(1)},
+                lambda p: {"seasons": p.get("data")})
+
+    m = re.match(r"^/unique-tournament/(\d+)/season/(\d+)/events/last/(\d+)$", endpoint)
+    if m:
+        tid, sid, page = m.groups()
+        return ("/v1/seasons/events",
+                {"unique_tournament_id": tid, "seasons_id": sid, "page": page, "course_events": "last"},
+                lambda p: p.get("data") or {})
+
+    m = re.match(r"^/event/(\d+)/odds/\d+/all$", endpoint)
+    if m:
+        return ("/v1/events/odds/all",
+                {"event_id": m.group(1), "odds_format": "decimal", "provider_id": "1"},
+                lambda p: {"markets": p.get("data") or []})
+
+    m = re.match(r"^/event/(\d+)/statistics$", endpoint)
+    if m:
+        return ("/v1/events/statistics", {"event_id": m.group(1)},
+                lambda p: {"statistics": p.get("data") or []})
+
+    m = re.match(r"^/sport/([\w-]+)/categories$", endpoint)
+    if m and m.group(1) in _SPORT_IDS:
+        return ("/v1/categories", {"sport_id": _SPORT_IDS[m.group(1)]},
+                lambda p: p.get("data") or [])
+
+    m = re.match(r"^/category/(\d+)/unique-tournaments$", endpoint)
+    if m:
+        return ("/v1/unique-tournaments", {"category_id": m.group(1)},
+                lambda p: {"groups": p.get("data") or []})
+
+    return (endpoint, {}, lambda p: p)
 
 
 class SofascoreAPI:
     """Drop-in replacement for sofascore_wrapper.api.SofascoreAPI.
 
     The wrapper's own implementation drives headless Chromium via Playwright,
-    but SofaScore's WAF now blocks that browser signature outright (confirmed:
-    identical 403 on the homepage itself, reproduced across unrelated
-    networks/IPs -- not an IP block). curl_cffi impersonates a real Chrome
-    TLS handshake instead, which SofaScore's WAF accepts, so every
-    sofascore_wrapper class (League/Match/Search/Team/Tennis) keeps working
-    unmodified -- they only ever call `.api._get(endpoint)` / `.api.close()`.
+    and earlier versions of this file impersonated a Chrome TLS handshake
+    with curl_cffi, then routed through two other RapidAPI proxies -- but
+    SofaScore's WAF blocks direct access outright (confirmed: 403 "challenge"
+    responses reproduced across unrelated networks/IPs, and even genuine
+    headless-Chromium page loads, not just raw HTTP clients).
+
+    Routing every request through the "SofaSport" RapidAPI proxy instead
+    sidesteps the WAF entirely -- it's the same SofaScore data, legitimately
+    authenticated via API key rather than scraped. Every sofascore_wrapper
+    class (League/Match/Team/Tennis) keeps working unmodified since they only
+    ever call `.api._get(endpoint)` / `.api.close()`; `_get` translates the
+    SofaScore-native path they construct into this API's query-param
+    equivalent and reshapes the response back into the expected shape.
+
+    This proxy also does not expose SofaScore's `/search/...` endpoints, so
+    `Search`-based tournament/category resolution no longer works -- see
+    `resolve_tournament_id`, which short-circuits instead of wasting a
+    request on a call that's known to fail. Leagues need a pinned
+    `tournament_id` in SPORTS[...]["leagues"][...] to work.
     """
 
     def __init__(self):
-        self._session = AsyncSession(impersonate="chrome124")
+        self._session = AsyncSession()
 
     async def _get(self, endpoint):
-        resp = await self._session.get(f"{SOFASCORE_BASE}{endpoint}")
-        if resp.status_code == 200:
-            return resp.json()
-        raise Exception(f"Failed to fetch {endpoint}: {resp.status_code}")
+        path, params, reshape = _translate_endpoint(endpoint)
+        resp = await self._session.get(
+            f"{RAPIDAPI_BASE}{path}",
+            params=params,
+            headers={"x-rapidapi-key": RAPIDAPI_KEY, "x-rapidapi-host": RAPIDAPI_HOST},
+        )
+        if resp.status_code != 200:
+            raise Exception(f"Failed to fetch {endpoint}: {resp.status_code}")
+        return reshape(resp.json())
 
     async def _raw_get(self, url):
         resp = await self._session.get(url)
@@ -73,16 +173,48 @@ class SofascoreAPI:
 # Sports & competitions.
 #
 # `analyzer`:
-#   "sets"      -> tennis: periods are per-set games.
+#   "sets"      -> table tennis / tennis: periods are per-set points/games.
 #   "football"  -> winner (1/X/2) + goals/corners/cards vs a fixed line.
 #
-# Football "leagues" map straight to one SofaScore unique-tournament
-# (resolved via search + country match, or pin `tournament_id` to skip search).
+# Table tennis & football "leagues" map straight to one SofaScore
+# unique-tournament (resolved via search + country match, or pin
+# `tournament_id` to skip search).
 #
 # Tennis "leagues" map to a SofaScore *category* (ATP/WTA/...) containing
 # many individual tournaments -> pick one from the dropdown (has_tournament_picker).
 # ----------------------------------------------------------------------------
 SPORTS = {
+    "table-tennis": {
+        "label": "Table Tennis",
+        "sport_key": "table-tennis",
+        "analyzer": "sets",
+        "metric_label": "Total points",
+        "decider_sets": 3,
+        "has_tournament_picker": False,
+        "columns": [
+            {"key": "id", "label": "ID"},
+            {"key": "game", "label": "Game"},
+            {"key": "winner", "label": "Winner (1/2)"},
+            {"key": "total_points", "label": "Total points"},
+            {"key": "even_odd", "label": "Even / Odd"},
+            {"key": "winning_odd", "label": "Winning odd"},
+            {"key": "num_sets", "label": "# Sets"},
+        ],
+        "note": ("<b>Winner</b> = 1 (player/team listed first), 2 (player/team listed second). "
+                 "<b>Total points</b> = sum of points across every set (both players). "
+                 "<b>Even/Odd</b> = parity of that total. "
+                 "<b>Winning odd</b> = pre-match decimal odd of the player who actually won. "
+                 "<b># Sets</b> = sets played &mdash; rows highlighted yellow went to 3 sets (a decider)."),
+        "leagues": {
+            # Belarus Liga Pro: no unique-tournament found under the Belarus category via the
+            # RapidAPI proxy (search is unsupported there) -- left unpinned, shows "no data" gracefully.
+            "belarus-liga-pro":  {"label": "Belarus · Liga Pro",  "country": "Belarus",        "search": "Liga Pro",  "tournament_id": None},
+            "czech-liga-pro":    {"label": "Czech · Liga Pro",    "country": "Czech Republic", "search": "Liga Pro",  "tournament_id": 19039},
+            "czech-tt-cup":      {"label": "Czech · TT Cup",      "country": "Czech Republic", "search": "TT Cup",    "tournament_id": 15005},
+            "russia-liga-pro":   {"label": "Russia · Liga Pro",   "country": "Russia",         "search": "Liga Pro",  "tournament_id": 15006},
+            "ukraine-setka-cup": {"label": "Ukraine · Setka Cup", "country": "Ukraine",        "search": "Setka Cup", "tournament_id": 15004},
+        },
+    },
     "football": {
         "label": "Football",
         "sport_key": "football",
@@ -95,22 +227,131 @@ SPORTS = {
             {"key": "game", "label": "Game"},
             {"key": "winner", "label": "Winner (1X2)"},
             {"key": "winner_odd", "label": "Winner odd"},
+            {"key": "ht_winner", "label": "HT Winner (1X2)"},
             {"key": "total_goals", "label": "Goals (O/U 2.5)"},
             {"key": "btts", "label": "Both scored"},
             {"key": "total_corners", "label": "Corners (O/U 9.5)"},
-            {"key": "total_cards", "label": "Cards (O/U 5.5)"},
+            {"key": "total_cards", "label": "Cards (O/U 3.5)"},
         ],
         "note": ("<b>Winner</b> = 1 (home), X (draw), 2 (away). "
                  "<b>Winner odd</b> = pre-match decimal odd of the outcome that actually happened. "
+                 "<b>HT Winner</b> = 1/X/2 result at half-time (first-half score only). Shows N/A if "
+                 "SofaScore has no period score for that match. "
                  "<b>Both scored</b> = whether both teams found the net (BTTS). "
-                 "<b>Goals/Corners/Cards</b> = the match's actual total vs. the fixed line, "
-                 "shown as Over/Under. Corners/cards show N/A if SofaScore has no match statistics for that game."),
+                 "<b>Goals/Corners/Cards</b> = the match's actual total vs. that specific match's own real "
+                 "bookmaker line where one was offered (picked as the Over/Under line whose odds were closest "
+                 "together, i.e. the market's real main line), otherwise a generated default line "
+                 "(2.5 / 9.5 / 3.5). Corners/cards show N/A only if SofaScore has no match statistics for the "
+                 "actual count."),
         "leagues": {
-            "premier-league": {"label": "Premier League", "country": "England", "search": "Premier League", "tournament_id": None},
-            "la-liga":        {"label": "La Liga",        "country": "Spain",   "search": "LaLiga",         "tournament_id": None},
-            "serie-a":        {"label": "Serie A",        "country": "Italy",   "search": "Serie A",        "tournament_id": None},
-            "bundesliga":     {"label": "Bundesliga",     "country": "Germany", "search": "Bundesliga",     "tournament_id": None},
-            "ligue-1":        {"label": "Ligue 1",        "country": "France",  "search": "Ligue 1",        "tournament_id": None},
+            "premier-league":       {"label": "Premier League",       "country": "England",      "search": "Premier League",       "tournament_id": 17},
+            "la-liga":              {"label": "La Liga",              "country": "Spain",        "search": "LaLiga",               "tournament_id": 8},
+            "serie-a":              {"label": "Serie A",              "country": "Italy",        "search": "Serie A",              "tournament_id": 23},
+            "bundesliga":           {"label": "Bundesliga",           "country": "Germany",      "search": "Bundesliga",           "tournament_id": 35},
+            "ligue-1":              {"label": "Ligue 1",              "country": "France",       "search": "Ligue 1",              "tournament_id": 34},
+            "champions-league":     {"label": "Champions League",     "country": "Europe",       "search": "Champions League",     "tournament_id": 7},
+            "europa-league":        {"label": "Europa League",        "country": "Europe",       "search": "Europa League",        "tournament_id": 679},
+            "eredivisie":           {"label": "Eredivisie",           "country": "Netherlands",  "search": "Eredivisie",           "tournament_id": 37},
+            "liga-portugal":        {"label": "Liga Portugal",        "country": "Portugal",     "search": "Liga Portugal",        "tournament_id": 238},
+            "championship":         {"label": "Championship",        "country": "England",      "search": "Championship",         "tournament_id": 18},
+            "mls":                  {"label": "MLS",                  "country": "USA",          "search": "MLS",                  "tournament_id": 242},
+            "brasileirao":          {"label": "Brasileirão",          "country": "Brazil",       "search": "Brasileirao",          "tournament_id": 325},
+            "super-lig":            {"label": "Süper Lig",            "country": "Turkey",       "search": "Super Lig",            "tournament_id": 52},
+            "belgian-pro-league":   {"label": "Belgian Pro League",   "country": "Belgium",      "search": "Pro League",           "tournament_id": 38},
+            # Liga MX splits into two independent tournaments per year; pinned to Apertura (Clausura = 11620).
+            "liga-mx":              {"label": "Liga MX",              "country": "Mexico",       "search": "Liga MX",              "tournament_id": 11621},
+            "scottish-premiership": {"label": "Scottish Premiership", "country": "Scotland",     "search": "Scottish Premiership", "tournament_id": 36},
+            "saudi-pro-league":     {"label": "Saudi Pro League",     "country": "Saudi Arabia", "search": "Saudi Pro League",     "tournament_id": 955},
+            # International tournaments (national teams, not club leagues).
+            "world-cup":            {"label": "World Cup",            "country": "World",        "search": "World Cup",            "tournament_id": 16},
+            "euros":                {"label": "European Championship","country": "Europe",       "search": "European Championship","tournament_id": 1},
+            "nations-league":       {"label": "UEFA Nations League",  "country": "Europe",       "search": "Nations League",       "tournament_id": 10783},
+            "copa-america":         {"label": "Copa América",         "country": "South America","search": "Copa America",         "tournament_id": 133},
+            "afcon":                {"label": "Africa Cup of Nations","country": "Africa",       "search": "Africa Cup of Nations", "tournament_id": 270},
+        },
+    },
+    "baseball": {
+        "label": "Baseball",
+        "sport_key": "baseball",
+        "analyzer": "baseball",
+        "metric_label": None,
+        "decider_sets": None,
+        "has_tournament_picker": False,
+        "columns": [
+            {"key": "id", "label": "ID"},
+            {"key": "game", "label": "Game"},
+            {"key": "winner", "label": "Winner (1/2)"},
+            {"key": "winner_odd", "label": "Winner odd"},
+            {"key": "total_runs", "label": "Total runs (O/U 8.5)"},
+            {"key": "handicap", "label": "Handicap (run line ±1.5)"},
+        ],
+        "note": ("<b>Winner</b> = 1 (home), 2 (away). "
+                 "<b>Winner odd</b> = pre-match decimal odd of the side that actually won. "
+                 "<b>Total runs</b> = combined final runs vs. a fixed 8.5 line, shown as Over/Under. "
+                 "<b>Handicap</b> = standard &plusmn;1.5 MLB run line applied to the pre-match favorite "
+                 "(inferred from moneyline odds) &mdash; shows which side covered. "
+                 "N/A if SofaScore has no odds for that game."),
+        "leagues": {
+            "mlb": {"label": "MLB", "country": "USA", "search": "MLB", "tournament_id": 11205},
+        },
+    },
+    "basketball": {
+        "label": "Basketball",
+        "sport_key": "basketball",
+        "analyzer": "basketball",
+        "metric_label": None,
+        "decider_sets": None,
+        "has_tournament_picker": False,
+        "columns": [
+            {"key": "id", "label": "ID"},
+            {"key": "game", "label": "Game"},
+            {"key": "winner", "label": "Winner (1/2)"},
+            {"key": "winner_odd", "label": "Winner odd"},
+            {"key": "total_points", "label": "Total points (O/U)"},
+        ],
+        "note": ("<b>Winner</b> = 1 (home), 2 (away) &mdash; basketball has no draws (overtime decides ties). "
+                 "<b>Winner odd</b> = pre-match decimal odd of the side that actually won. "
+                 "<b>Total points</b> = combined final score vs. that specific match's own real bookmaker "
+                 "line where one was offered, otherwise a generated default line for that league."),
+        "leagues": {
+            "nba":        {"label": "NBA",               "country": "USA",            "search": "NBA",       "tournament_id": 132, "total_line": 224.5},
+            "euroleague": {"label": "EuroLeague",         "country": "Europe",         "search": "Euroleague","tournament_id": 138, "total_line": 159.5},
+            "eurocup":    {"label": "EuroCup",            "country": "Europe",         "search": "Eurocup",   "tournament_id": 141, "total_line": 162.5},
+            "acb":        {"label": "Liga ACB",           "country": "Spain",          "search": "ACB",       "tournament_id": 264, "total_line": 163.5},
+            "lba":        {"label": "Lega Basket Serie A","country": "Italy",          "search": "Serie A",   "tournament_id": 262, "total_line": 164.5},
+            "bbl":        {"label": "BBL",                "country": "Germany",        "search": "BBL",       "tournament_id": 227, "total_line": 159.5},
+        },
+    },
+    "hockey": {
+        "label": "Ice Hockey",
+        "sport_key": "ice-hockey",
+        "analyzer": "hockey",
+        "metric_label": None,
+        "decider_sets": None,
+        "has_tournament_picker": False,
+        "columns": [
+            {"key": "id", "label": "ID"},
+            {"key": "game", "label": "Game"},
+            {"key": "winner", "label": "Winner (1/2)"},
+            {"key": "winner_odd", "label": "Winner odd"},
+            {"key": "total_goals", "label": "Goals (O/U 5.5)"},
+            {"key": "puck_line", "label": "Puck line (±1.5)"},
+        ],
+        "note": ("<b>Winner</b> = 1 (home), 2 (away) &mdash; includes overtime/shootout result. "
+                 "<b>Winner odd</b> = pre-match decimal odd of the side that actually won. "
+                 "<b>Goals</b> = combined final score vs. that match's own real bookmaker line where one was "
+                 "offered, otherwise a generated 5.5 default. "
+                 "<b>Puck line</b> = standard &plusmn;1.5 goal handicap applied to the pre-match favorite "
+                 "(inferred from moneyline odds) &mdash; no real puck-line market exists in this data source, "
+                 "so this stays an approximation. Shows which side covered, or N/A if there's no odds for that game."),
+        "leagues": {
+            "nhl":       {"label": "NHL",             "country": "USA",            "search": "NHL",             "tournament_id": 234},
+            "khl":       {"label": "KHL",             "country": "Russia",         "search": "KHL",             "tournament_id": 268},
+            "shl":       {"label": "SHL",             "country": "Sweden",         "search": "SHL",             "tournament_id": 261},
+            "liiga":     {"label": "Liiga",           "country": "Finland",        "search": "Liiga",           "tournament_id": 134},
+            "del":       {"label": "DEL",             "country": "Germany",        "search": "DEL",             "tournament_id": 225},
+            "nla":       {"label": "National League", "country": "Switzerland",    "search": "National League", "tournament_id": 128},
+            "extraliga": {"label": "Czech Extraliga", "country": "Czech Republic", "search": "Extraliga",       "tournament_id": 237},
         },
     },
     "tennis": {
@@ -123,12 +364,14 @@ SPORTS = {
         "columns": [
             {"key": "id", "label": "ID"},
             {"key": "game", "label": "Game"},
+            {"key": "winner", "label": "Winner (1/2)"},
             {"key": "total_points", "label": "Total games"},
             {"key": "even_odd", "label": "Even / Odd"},
             {"key": "winning_odd", "label": "Winning odd"},
             {"key": "num_sets", "label": "# Sets"},
         ],
-        "note": ("<b>Total games</b> = sum of games across every set (both players). "
+        "note": ("<b>Winner</b> = 1 (player listed first), 2 (player listed second). "
+                 "<b>Total games</b> = sum of games across every set (both players). "
                  "<b>Even/Odd</b> = parity of that total. "
                  "<b>Winning odd</b> = pre-match decimal odd of the player who actually won. "
                  "<b># Sets</b> = sets played &mdash; rows highlighted yellow went to 3 sets (a decider). "
@@ -152,7 +395,7 @@ _match_cache = {}             # (sport,league,tournament_id,limit) -> (ts, paylo
 _id_cache = {}                 # (sport,league) -> resolved tournament_id
 _category_cache = {}           # (sport,league) -> (ts, category_id)
 _tournament_list_cache = {}    # (sport,league) -> (ts, (tournaments, category_id))
-_active_cache = {}             # sport_key -> (ts, set(tournament_id) | None)
+_active_cache = {}             # sport_key -> (ts, (scheduled_ids, live_ids))
 _team_cache = {}                # (team_id,limit) -> (ts, payload)
 
 
@@ -178,7 +421,7 @@ def _to_number(x):
 
 
 def _period_points(score: dict):
-    """Per-set tallies (games for tennis)."""
+    """Per-set tallies (points for table tennis, games for tennis)."""
     pts = []
     i = 1
     while True:
@@ -191,8 +434,11 @@ def _period_points(score: dict):
     return pts
 
 
-def fractional_to_decimal(frac: str):
-    """'57/100' -> 1.57 ; '9/2' -> 5.5 ; returns None on failure."""
+def fractional_to_decimal(frac):
+    """'57/100' -> 1.57 ; '9/2' -> 5.5 ; a plain number (already decimal, as
+    some data sources return) is passed through as-is; returns None on failure."""
+    if isinstance(frac, (int, float)):
+        return round(float(frac), 2)
     try:
         num, den = frac.split("/")
         return round(1 + float(num) / float(den), 2)
@@ -213,6 +459,37 @@ def pick_choice_odd(odds_payload, choice_name, market_id=1):
     if not choice:
         return None
     return fractional_to_decimal(choice.get("fractionalValue", ""))
+
+
+# Over/Under totals markets that carry multiple lines (e.g. football's "Match
+# goals" offers 0.5, 1.5, 2.5, ... as separate market entries, one per line,
+# via the `choiceGroup` field). There's no "featured line" flag in the data,
+# so the bookmaker's real main line is taken as the one whose Over/Under odds
+# are closest together -- the closest to a true coin-flip, which is exactly
+# where a bookmaker centers their main line.
+def pick_main_total_line(odds_payload, market_id):
+    """Real per-event Over/Under line for `market_id`, or None if that market
+    isn't offered for this event (no fixed fallback -- caller shows N/A)."""
+    if not odds_payload:
+        return None
+    best_line, best_diff = None, None
+    for market in odds_payload.get("markets", []):
+        if market.get("marketId") != market_id:
+            continue
+        choices = market.get("choices", [])
+        over = next((c for c in choices if c.get("name") == "Over"), None)
+        under = next((c for c in choices if c.get("name") == "Under"), None)
+        if not over or not under:
+            continue
+        over_odd = fractional_to_decimal(over.get("fractionalValue"))
+        under_odd = fractional_to_decimal(under.get("fractionalValue"))
+        line = _to_number(market.get("choiceGroup"))
+        if over_odd is None or under_odd is None or line is None:
+            continue
+        diff = abs(over_odd - under_odd)
+        if best_diff is None or diff < best_diff:
+            best_diff, best_line = diff, line
+    return best_line
 
 
 def parse_football_stats(stats_payload):
@@ -316,21 +593,29 @@ def analyze_row_sets(event: dict, winning_odd, decider_sets: int) -> dict:
     winner = home if winner_code == 1 else away if winner_code == 2 else "-"
     is_decider = num_sets == decider_sets
 
+    if winner_code == 1:
+        outcome, variant = "1", "home"
+    elif winner_code == 2:
+        outcome, variant = "2", "away"
+    else:
+        outcome, variant = "-", None
+
     return {
         "id": event.get("id"),
         "game": cell(f"{home} vs {away}", sub=f'{hs.get("current","?")}–{as_.get("current","?")} · won: {winner}'),
+        "winner": cell(outcome, variant=variant),
         "total_points": cell(str(total)),
         "even_odd": cell("Even" if total % 2 == 0 else "Odd", variant="even" if total % 2 == 0 else "odd"),
         "winning_odd": cell(f"{winning_odd:.2f}" if winning_odd is not None else "—",
                              variant="odd-value" if winning_odd is not None else None),
         "num_sets": cell(str(num_sets), variant="decider" if is_decider else "normal"),
         "highlight": "decider" if is_decider else None,
-        "_raw": {"total_points": total, "even_odd": "Even" if total % 2 == 0 else "Odd",
+        "_raw": {"outcome": outcome, "total_points": total, "even_odd": "Even" if total % 2 == 0 else "Odd",
                   "winning_odd": winning_odd, "num_sets": num_sets},
     }
 
 
-def analyze_row_football(event: dict, winner_odd, corners, cards) -> dict:
+def analyze_row_football(event: dict, winner_odd, corners, cards, odds=None) -> dict:
     home_team = event.get("homeTeam", {}) or {}
     away_team = event.get("awayTeam", {}) or {}
     home = home_team.get("name", "?")
@@ -353,24 +638,45 @@ def analyze_row_football(event: dict, winner_odd, corners, cards) -> dict:
     else:
         outcome, variant = "2", "away"
 
-    goals_variant = "over" if total_goals > 2.5 else "under"
-    goals_text = f'{total_goals} ({"Over" if goals_variant == "over" else "Under"} 2.5)'
+    ht_home = hs.get("period1")
+    ht_away = as_.get("period1")
+    if ht_home is None or ht_away is None:
+        ht_outcome, ht_variant = None, None
+    elif ht_home > ht_away:
+        ht_outcome, ht_variant = "1", "home"
+    elif ht_home < ht_away:
+        ht_outcome, ht_variant = "2", "away"
+    else:
+        ht_outcome, ht_variant = "X", "draw"
+    ht_text = ht_outcome if ht_outcome is not None else "N/A"
+
+    goals_line = pick_main_total_line(odds, 9)  # "Match goals"
+    if goals_line is None:
+        goals_line = 2.5  # no real line offered for this match -- generated default
+    goals_variant = "over" if total_goals > goals_line else "under"
+    goals_text = f'{total_goals} ({"Over" if goals_variant == "over" else "Under"} {goals_line:g})'
 
     btts = home_goals > 0 and away_goals > 0
     btts_variant = "yes" if btts else "no"
     btts_text = "Yes" if btts else "No"
 
+    corners_line = pick_main_total_line(odds, 21)  # "Corners 2-Way"
+    if corners_line is None:
+        corners_line = 9.5  # no real line offered for this match -- generated default
     if corners is not None:
         total_corners = corners[0] + corners[1]
-        corners_variant = "over" if total_corners > 9.5 else "under"
-        corners_text = f'{total_corners:g} ({"Over" if corners_variant == "over" else "Under"} 9.5)'
+        corners_variant = "over" if total_corners > corners_line else "under"
+        corners_text = f'{total_corners:g} ({"Over" if corners_variant == "over" else "Under"} {corners_line:g})'
     else:
         total_corners, corners_variant, corners_text = None, None, "N/A"
 
+    cards_line = pick_main_total_line(odds, 20)  # "Cards in match"
+    if cards_line is None:
+        cards_line = 3.5  # no real line offered for this match -- generated default
     if cards is not None:
         total_cards = cards[0] + cards[1]
-        cards_variant = "over" if total_cards > 5.5 else "under"
-        cards_text = f'{total_cards:g} ({"Over" if cards_variant == "over" else "Under"} 5.5)'
+        cards_variant = "over" if total_cards > cards_line else "under"
+        cards_text = f'{total_cards:g} ({"Over" if cards_variant == "over" else "Under"} {cards_line:g})'
     else:
         total_cards, cards_variant, cards_text = None, None, "N/A"
 
@@ -382,16 +688,184 @@ def analyze_row_football(event: dict, winner_odd, corners, cards) -> dict:
         "winner": cell(outcome, variant=variant),
         "winner_odd": cell(f"{winner_odd:.2f}" if winner_odd is not None else "—",
                             variant="odd-value" if winner_odd is not None else None),
+        "ht_winner": cell(ht_text, variant=ht_variant),
         "total_goals": cell(goals_text, variant=goals_variant),
         "btts": cell(btts_text, variant=btts_variant),
         "total_corners": cell(corners_text, variant=corners_variant),
         "total_cards": cell(cards_text, variant=cards_variant),
         "highlight": None,
         "_raw": {"outcome": outcome, "winner_odd": winner_odd,
+                  "ht_outcome": ht_outcome,
                   "total_goals": total_goals, "goals_variant": goals_variant,
                   "btts": btts,
                   "total_corners": total_corners, "corners_variant": corners_variant,
                   "total_cards": total_cards, "cards_variant": cards_variant},
+    }
+
+
+def analyze_row_baseball(event: dict, winner_odd, home_odd, away_odd,
+                          total_line=8.5, handicap_line=1.5) -> dict:
+    """SofaScore's bookmaker feed only exposes a Full-time (moneyline) market for
+    MLB -- no totals/run-line odds -- so total runs and the handicap are evaluated
+    against fixed, standard MLB lines (8.5 runs, +/-1.5 run line) rather than a
+    fetched line. The run-line favorite is inferred from whichever side has the
+    shorter moneyline odd; if both odds are missing/equal, handicap is N/A."""
+    home_team = event.get("homeTeam", {}) or {}
+    away_team = event.get("awayTeam", {}) or {}
+    home = home_team.get("name", "?")
+    away = away_team.get("name", "?")
+    hs = event.get("homeScore", {}) or {}
+    as_ = event.get("awayScore", {}) or {}
+    home_runs = int(hs.get("current", 0) or 0)
+    away_runs = int(as_.get("current", 0) or 0)
+    total_runs = home_runs + away_runs
+
+    winner_code = event.get("winnerCode")
+    if winner_code == 1:
+        outcome, variant = "1", "home"
+    elif winner_code == 2:
+        outcome, variant = "2", "away"
+    elif home_runs > away_runs:
+        outcome, variant = "1", "home"
+    else:
+        outcome, variant = "2", "away"
+
+    total_variant = "over" if total_runs > total_line else "under"
+    total_text = f'{total_runs} ({"Over" if total_variant == "over" else "Under"} {total_line:g})'
+
+    if home_odd is not None and away_odd is not None and home_odd != away_odd:
+        fav_is_home = home_odd < away_odd
+        fav_name, dog_name = (home, away) if fav_is_home else (away, home)
+        margin = (home_runs - away_runs) if fav_is_home else (away_runs - home_runs)
+        fav_covers = margin > handicap_line
+        cover_name = fav_name if fav_covers else dog_name
+        cover_line = f"-{handicap_line:g}" if fav_covers else f"+{handicap_line:g}"
+        handicap_text = f"{cover_name} ({cover_line})"
+        handicap_variant = "home" if cover_name == home else "away"
+    else:
+        handicap_text, handicap_variant = "N/A", None
+
+    return {
+        "id": event.get("id"),
+        "game": cell(f"{home} vs {away}", sub=f"{home_runs}-{away_runs} FT",
+                     home_id=home_team.get("id"), away_id=away_team.get("id"),
+                     home_name=home, away_name=away),
+        "winner": cell(outcome, variant=variant),
+        "winner_odd": cell(f"{winner_odd:.2f}" if winner_odd is not None else "—",
+                            variant="odd-value" if winner_odd is not None else None),
+        "total_runs": cell(total_text, variant=total_variant),
+        "handicap": cell(handicap_text, variant=handicap_variant),
+        "highlight": None,
+        "_raw": {"outcome": outcome, "winner_odd": winner_odd,
+                  "total_runs": total_runs, "total_variant": total_variant,
+                  "handicap_variant": handicap_variant},
+    }
+
+
+def analyze_row_basketball(event: dict, winner_odd, odds=None, default_total_line=219.5) -> dict:
+    home_team = event.get("homeTeam", {}) or {}
+    away_team = event.get("awayTeam", {}) or {}
+    home = home_team.get("name", "?")
+    away = away_team.get("name", "?")
+    hs = event.get("homeScore", {}) or {}
+    as_ = event.get("awayScore", {}) or {}
+    home_pts = int(hs.get("current", 0) or 0)
+    away_pts = int(as_.get("current", 0) or 0)
+    total_pts = home_pts + away_pts
+
+    winner_code = event.get("winnerCode")
+    if winner_code == 1:
+        outcome, variant = "1", "home"
+    elif winner_code == 2:
+        outcome, variant = "2", "away"
+    elif home_pts > away_pts:
+        outcome, variant = "1", "home"
+    else:
+        outcome, variant = "2", "away"
+
+    total_line = pick_main_total_line(odds, 18)  # "Game total"
+    if total_line is None:
+        total_line = default_total_line  # no real line offered for this match -- generated default
+    total_variant = "over" if total_pts > total_line else "under"
+    total_text = f'{total_pts} ({"Over" if total_variant == "over" else "Under"} {total_line:g})'
+
+    return {
+        "id": event.get("id"),
+        "game": cell(f"{home} vs {away}", sub=f"{home_pts}-{away_pts} FT",
+                     home_id=home_team.get("id"), away_id=away_team.get("id"),
+                     home_name=home, away_name=away),
+        "winner": cell(outcome, variant=variant),
+        "winner_odd": cell(f"{winner_odd:.2f}" if winner_odd is not None else "—",
+                            variant="odd-value" if winner_odd is not None else None),
+        "total_points": cell(total_text, variant=total_variant),
+        "highlight": None,
+        "_raw": {"outcome": outcome, "winner_odd": winner_odd,
+                  "total_points": total_pts, "total_variant": total_variant},
+    }
+
+
+def analyze_row_hockey(event: dict, winner_odd, home_odd, away_odd, odds=None,
+                        default_total_line=5.5, handicap_line=1.5) -> dict:
+    """Total goals uses that match's own real bookmaker line (via the "Match
+    goals" market, same as football) where one was offered, falling back to
+    a generated 5.5 default otherwise. No puck-line/handicap market exists in
+    this data source for hockey though (confirmed: only Full-time moneyline,
+    Match goals, and 1st-period-goals markets are offered) -- so the puck
+    line is still a fixed +/-1.5 line applied to whichever side has the
+    shorter moneyline odd, mirroring the MLB run-line model. If both odds are
+    missing/equal, the puck line is N/A."""
+    home_team = event.get("homeTeam", {}) or {}
+    away_team = event.get("awayTeam", {}) or {}
+    home = home_team.get("name", "?")
+    away = away_team.get("name", "?")
+    hs = event.get("homeScore", {}) or {}
+    as_ = event.get("awayScore", {}) or {}
+    home_goals = int(hs.get("current", 0) or 0)
+    away_goals = int(as_.get("current", 0) or 0)
+    total_goals = home_goals + away_goals
+
+    winner_code = event.get("winnerCode")
+    if winner_code == 1:
+        outcome, variant = "1", "home"
+    elif winner_code == 2:
+        outcome, variant = "2", "away"
+    elif home_goals > away_goals:
+        outcome, variant = "1", "home"
+    else:
+        outcome, variant = "2", "away"
+
+    total_line = pick_main_total_line(odds, 9)  # "Match goals"
+    if total_line is None:
+        total_line = default_total_line  # no real line offered for this match -- generated default
+    total_variant = "over" if total_goals > total_line else "under"
+    total_text = f'{total_goals} ({"Over" if total_variant == "over" else "Under"} {total_line:g})'
+
+    if home_odd is not None and away_odd is not None and home_odd != away_odd:
+        fav_is_home = home_odd < away_odd
+        fav_name, dog_name = (home, away) if fav_is_home else (away, home)
+        margin = (home_goals - away_goals) if fav_is_home else (away_goals - home_goals)
+        fav_covers = margin > handicap_line
+        cover_name = fav_name if fav_covers else dog_name
+        cover_line = f"-{handicap_line:g}" if fav_covers else f"+{handicap_line:g}"
+        handicap_text = f"{cover_name} ({cover_line})"
+        handicap_variant = "home" if cover_name == home else "away"
+    else:
+        handicap_text, handicap_variant = "N/A", None
+
+    return {
+        "id": event.get("id"),
+        "game": cell(f"{home} vs {away}", sub=f"{home_goals}-{away_goals} FT",
+                     home_id=home_team.get("id"), away_id=away_team.get("id"),
+                     home_name=home, away_name=away),
+        "winner": cell(outcome, variant=variant),
+        "winner_odd": cell(f"{winner_odd:.2f}" if winner_odd is not None else "—",
+                            variant="odd-value" if winner_odd is not None else None),
+        "total_goals": cell(total_text, variant=total_variant),
+        "puck_line": cell(handicap_text, variant=handicap_variant),
+        "highlight": None,
+        "_raw": {"outcome": outcome, "winner_odd": winner_odd,
+                  "total_goals": total_goals, "total_variant": total_variant,
+                  "handicap_variant": handicap_variant},
     }
 
 
@@ -406,8 +880,12 @@ def build_summary(sport_cfg, rows):
         odds = [r["winning_odd"] for r in raws if r["winning_odd"] is not None]
         avg_odd = round(sum(odds) / len(odds), 2) if odds else None
         decider_n = sum(1 for r in raws if r["num_sets"] == sport_cfg["decider_sets"])
+        winner_known = [r for r in raws if r["outcome"] in ("1", "2")]
+        home_n = sum(1 for r in winner_known if r["outcome"] == "1")
+        away_n = sum(1 for r in winner_known if r["outcome"] == "2")
         return [
             {"label": "Matches", "value": str(n)},
+            {"label": "Winner 1 / 2", "value": f"{home_n} / {away_n}" if winner_known else "—"},
             {"label": "Even / Odd", "value": f"{even_n} / {n - even_n}"},
             {"label": f"Avg {sport_cfg['metric_label'].lower()}", "value": str(avg_total)},
             {"label": "Avg winning odd", "value": f"{avg_odd:.2f}" if avg_odd is not None else "—"},
@@ -417,7 +895,12 @@ def build_summary(sport_cfg, rows):
         home_n = sum(1 for r in raws if r["outcome"] == "1")
         draw_n = sum(1 for r in raws if r["outcome"] == "X")
         away_n = sum(1 for r in raws if r["outcome"] == "2")
-        over_goals = sum(1 for r in raws if r["goals_variant"] == "over")
+        ht_known = [r for r in raws if r["ht_outcome"] is not None]
+        ht_home_n = sum(1 for r in ht_known if r["ht_outcome"] == "1")
+        ht_draw_n = sum(1 for r in ht_known if r["ht_outcome"] == "X")
+        ht_away_n = sum(1 for r in ht_known if r["ht_outcome"] == "2")
+        goals_known = [r for r in raws if r["goals_variant"] is not None]
+        over_goals = sum(1 for r in goals_known if r["goals_variant"] == "over")
         btts_yes = sum(1 for r in raws if r["btts"])
         corners_known = [r for r in raws if r["corners_variant"] is not None]
         cards_known = [r for r in raws if r["cards_variant"] is not None]
@@ -426,10 +909,53 @@ def build_summary(sport_cfg, rows):
         return [
             {"label": "Matches", "value": str(n)},
             {"label": "Home / Draw / Away", "value": f"{home_n} / {draw_n} / {away_n}"},
-            {"label": "Over 2.5 goals", "value": f"{over_goals}/{n}"},
+            {"label": "HT Home / Draw / Away", "value": f"{ht_home_n} / {ht_draw_n} / {ht_away_n}" if ht_known else "—"},
+            {"label": "Over their goals line", "value": f"{over_goals}/{len(goals_known)}" if goals_known else "—"},
             {"label": "Both scored", "value": f"{btts_yes}/{n}"},
-            {"label": "Over 9.5 corners", "value": f"{over_corners}/{len(corners_known)}" if corners_known else "—"},
-            {"label": "Over 5.5 cards", "value": f"{over_cards}/{len(cards_known)}" if cards_known else "—"},
+            {"label": "Over their corners line", "value": f"{over_corners}/{len(corners_known)}" if corners_known else "—"},
+            {"label": "Over their cards line", "value": f"{over_cards}/{len(cards_known)}" if cards_known else "—"},
+        ]
+    if sport_cfg["analyzer"] == "baseball":
+        home_n = sum(1 for r in raws if r["outcome"] == "1")
+        away_n = sum(1 for r in raws if r["outcome"] == "2")
+        odds = [r["winner_odd"] for r in raws if r["winner_odd"] is not None]
+        avg_odd = round(sum(odds) / len(odds), 2) if odds else None
+        over_n = sum(1 for r in raws if r["total_variant"] == "over")
+        handicap_known = [r for r in raws if r["handicap_variant"] is not None]
+        return [
+            {"label": "Matches", "value": str(n)},
+            {"label": "Home / Away", "value": f"{home_n} / {away_n}"},
+            {"label": "Avg winning odd", "value": f"{avg_odd:.2f}" if avg_odd is not None else "—"},
+            {"label": "Over 8.5 runs", "value": f"{over_n}/{n}"},
+            {"label": "Handicap resolved", "value": f"{len(handicap_known)}/{n}" if n else "—"},
+        ]
+    if sport_cfg["analyzer"] == "basketball":
+        home_n = sum(1 for r in raws if r["outcome"] == "1")
+        away_n = sum(1 for r in raws if r["outcome"] == "2")
+        odds = [r["winner_odd"] for r in raws if r["winner_odd"] is not None]
+        avg_odd = round(sum(odds) / len(odds), 2) if odds else None
+        points_known = [r for r in raws if r["total_variant"] is not None]
+        over_n = sum(1 for r in points_known if r["total_variant"] == "over")
+        return [
+            {"label": "Matches", "value": str(n)},
+            {"label": "Home / Away", "value": f"{home_n} / {away_n}"},
+            {"label": "Avg winning odd", "value": f"{avg_odd:.2f}" if avg_odd is not None else "—"},
+            {"label": "Over their points line", "value": f"{over_n}/{len(points_known)}" if points_known else "—"},
+        ]
+    if sport_cfg["analyzer"] == "hockey":
+        home_n = sum(1 for r in raws if r["outcome"] == "1")
+        away_n = sum(1 for r in raws if r["outcome"] == "2")
+        odds = [r["winner_odd"] for r in raws if r["winner_odd"] is not None]
+        avg_odd = round(sum(odds) / len(odds), 2) if odds else None
+        goals_known = [r for r in raws if r["total_variant"] is not None]
+        over_n = sum(1 for r in goals_known if r["total_variant"] == "over")
+        handicap_known = [r for r in raws if r["handicap_variant"] is not None]
+        return [
+            {"label": "Matches", "value": str(n)},
+            {"label": "Home / Away", "value": f"{home_n} / {away_n}"},
+            {"label": "Avg winning odd", "value": f"{avg_odd:.2f}" if avg_odd is not None else "—"},
+            {"label": "Over their goals line", "value": f"{over_n}/{len(goals_known)}" if goals_known else "—"},
+            {"label": "Puck line resolved", "value": f"{len(handicap_known)}/{n}" if n else "—"},
         ]
     return []
 
@@ -438,25 +964,12 @@ def build_summary(sport_cfg, rows):
 # Network layer (async, one Chromium session per request).
 # ----------------------------------------------------------------------------
 async def resolve_tournament_id(api, sport_key, cfg):
-    """Search -> single unique tournament, matched by country."""
-    search = Search(api, search_string=cfg["search"])
-    data = await search.search_leagues(sport_key)
-    results = data.get("results", []) if isinstance(data, dict) else data
-    if not results:
-        return None
-    country = (cfg.get("country") or "").lower()
-    for entry in results:
-        ent = entry.get("entity", entry)
-        cat = ent.get("category") or {}
-        cat_name = (cat.get("name") or "").lower()
-        cat_country = ((cat.get("country") or {}).get("name") or "").lower()
-        if country in (cat_name, cat_country):
-            return ent.get("id")
-    for entry in results:
-        ent = entry.get("entity", entry)
-        cat = ent.get("category") or {}
-        if country in (cat.get("name") or "").lower():
-            return ent.get("id")
+    """Search -> single unique tournament, matched by country.
+
+    The RapidAPI proxy doesn't expose SofaScore's /search/ endpoints (404),
+    so this always fails now -- short-circuit instead of spending a request
+    on a call known to fail. Leagues need a pinned "tournament_id" in config.
+    """
     return None
 
 
@@ -494,24 +1007,24 @@ def extract_tournament_ids_wrapper(events):  # kept for symmetry / testability
 
 
 async def fetch_active_tournament_ids(api, sport_key):
-    ids, got_any = set(), False
+    """Returns (scheduled_ids, live_ids), each None if that lookup failed."""
+    live_ids, scheduled_ids = None, None
     try:
         live = await api._get(f"/sport/{sport_key}/events/live")
-        ids |= extract_tournament_ids(live.get("events", []))
-        got_any = True
+        live_ids = extract_tournament_ids(live.get("events", []))
     except Exception:
         pass
     try:
         today = date.today().isoformat()
         scheduled = await api._get(f"/sport/{sport_key}/scheduled-events/{today}")
-        ids |= extract_tournament_ids(scheduled.get("events", []))
-        got_any = True
+        scheduled_ids = extract_tournament_ids(scheduled.get("events", []))
     except Exception:
         pass
-    return ids if got_any else None
+    return scheduled_ids, live_ids
 
 
 async def get_active_tournament_ids(sport_key):
+    """Returns (scheduled_ids, live_ids); either may be None if unavailable."""
     hit = _active_cache.get(sport_key)
     if hit and time.time() - hit[0] < ACTIVE_TTL:
         return hit[1]
@@ -545,13 +1058,17 @@ async def get_tournament_list(sport_key, league_key):
             await api.close()
 
     try:
-        active_ids = await get_active_tournament_ids(SPORTS[sport_key]["sport_key"])
+        scheduled_ids, live_ids = await get_active_tournament_ids(SPORTS[sport_key]["sport_key"])
     except Exception:
-        active_ids = None
+        scheduled_ids, live_ids = None, None
     tagged = []
     for t in tournaments:
-        active = None if active_ids is None else (t["id"] in active_ids)
-        tagged.append({**t, "active": active})
+        is_live = live_ids is not None and t["id"] in live_ids
+        if scheduled_ids is None:
+            active = None
+        else:
+            active = (t["id"] in scheduled_ids) and not is_live
+        tagged.append({**t, "active": active, "live": is_live})
     tagged.sort(key=lambda t: (t["active"] is False, (t["name"] or "").lower()))
     return {"category_id": category_id, "tournaments": tagged, "error": None}
 
@@ -707,7 +1224,7 @@ def get_team_stats(team_id, limit):
     return payload
 
 
-async def build_row(api, sport_cfg, event):
+async def build_row(api, sport_cfg, league_cfg, event):
     try:
         odds = await Match(api, event["id"]).match_odds()
     except Exception:
@@ -732,7 +1249,51 @@ async def build_row(api, sport_cfg, event):
             parsed = parse_football_stats(stats_raw)
         except Exception:
             parsed = {"corners": None, "cards": None}
-        return analyze_row_football(event, winner_odd, parsed["corners"], parsed["cards"])
+        return analyze_row_football(event, winner_odd, parsed["corners"], parsed["cards"], odds)
+    elif sport_cfg["analyzer"] == "baseball":
+        winner_code = event.get("winnerCode")
+        hs = event.get("homeScore", {}) or {}
+        as_ = event.get("awayScore", {}) or {}
+        hr, ar = int(hs.get("current", 0) or 0), int(as_.get("current", 0) or 0)
+        if winner_code == 1:
+            outcome = "1"
+        elif winner_code == 2:
+            outcome = "2"
+        else:
+            outcome = "1" if hr > ar else "2"
+        winner_odd = pick_choice_odd(odds, outcome)
+        home_odd = pick_choice_odd(odds, "1")
+        away_odd = pick_choice_odd(odds, "2")
+        return analyze_row_baseball(event, winner_odd, home_odd, away_odd)
+    elif sport_cfg["analyzer"] == "basketball":
+        winner_code = event.get("winnerCode")
+        hs = event.get("homeScore", {}) or {}
+        as_ = event.get("awayScore", {}) or {}
+        hp, ap = int(hs.get("current", 0) or 0), int(as_.get("current", 0) or 0)
+        if winner_code == 1:
+            outcome = "1"
+        elif winner_code == 2:
+            outcome = "2"
+        else:
+            outcome = "1" if hp > ap else "2"
+        winner_odd = pick_choice_odd(odds, outcome)
+        default_total_line = league_cfg.get("total_line", 219.5)
+        return analyze_row_basketball(event, winner_odd, odds, default_total_line)
+    elif sport_cfg["analyzer"] == "hockey":
+        winner_code = event.get("winnerCode")
+        hs = event.get("homeScore", {}) or {}
+        as_ = event.get("awayScore", {}) or {}
+        hg, ag = int(hs.get("current", 0) or 0), int(as_.get("current", 0) or 0)
+        if winner_code == 1:
+            outcome = "1"
+        elif winner_code == 2:
+            outcome = "2"
+        else:
+            outcome = "1" if hg > ag else "2"
+        winner_odd = pick_choice_odd(odds, outcome)
+        home_odd = pick_choice_odd(odds, "1")
+        away_odd = pick_choice_odd(odds, "2")
+        return analyze_row_hockey(event, winner_odd, home_odd, away_odd, odds)
     else:
         winner_code = event.get("winnerCode")
         choice_name = "1" if winner_code == 1 else "2" if winner_code == 2 else None
@@ -759,7 +1320,7 @@ async def build_match_payload(sport_key, league_key, tournament_id, limit):
                     "rows": [], "summary": [], "error": "Missing tournament id"}
 
         events = await fetch_finished(api, tid, limit)
-        rows = [await build_row(api, sport_cfg, ev) for ev in events]
+        rows = [await build_row(api, sport_cfg, cfg, ev) for ev in events]
         summary = build_summary(sport_cfg, rows)
         display_rows = [{k: v for k, v in r.items() if k != "_raw"} for r in rows]
 
@@ -1003,7 +1564,7 @@ PAGE = r"""
   <div class="legend" id="legend" style="display:none"><span class="swatch"></span> highlighted rows = match decided in 3 sets</div>
 
   <div class="tablewrap">
-    <div id="status" class="status">Pick a league to begin.</div>
+    <div id="status" class="status">Pick a sport above to begin.</div>
     <table id="table" style="display:none">
       <thead><tr id="theadRow"></tr></thead>
       <tbody id="tbody"></tbody>
@@ -1031,15 +1592,15 @@ async function loadSports(){
   sports = await (await fetch('/api/sports')).json();
   const st = document.getElementById('sporttabs');
   st.innerHTML = '';
-  sports.forEach((s,i)=>{
+  sports.forEach((s)=>{
     const el = document.createElement('div');
-    el.className = 'sporttab' + (i===0?' active':'');
+    el.className = 'sporttab';
     el.textContent = s.label;
     el.dataset.key = s.key;
     el.onclick = ()=> setSport(s.key);
     st.appendChild(el);
   });
-  await setSport(sports[0].key);
+  document.getElementById('status').innerHTML = 'Pick a sport above to begin.';
 }
 
 function renderHeader(){
@@ -1098,7 +1659,8 @@ async function setLeague(key){
     sel.innerHTML = '<option value="">Select a tournament…</option>' +
       data.tournaments.map(t=>{
         const disabled = t.active === false;
-        const label = disabled ? `${t.name} (not ongoing)` : t.name;
+        const reason = t.live ? '(live match in progress)' : '(not ongoing)';
+        const label = disabled ? `${t.name} ${reason}` : t.name;
         return `<option value="${t.id}" ${disabled?'disabled':''}>${label}</option>`;
       }).join('');
     sel.disabled = false;
@@ -1121,6 +1683,12 @@ function updateNote(){
 }
 
 async function load(){
+  if(!currentSport || !currentLeague){
+    document.getElementById('status').style.display='block';
+    document.getElementById('status').innerHTML = 'Pick a sport above to begin.';
+    document.getElementById('table').style.display='none';
+    return;
+  }
   if(currentMeta.has_tournament_picker && !currentTournamentId){
     document.getElementById('status').style.display='block';
     document.getElementById('status').innerHTML = 'Pick a tournament above to load its matches.';

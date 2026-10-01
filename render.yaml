@@ -4,3 +4,6 @@ services:
     env: docker
     plan: free
     healthCheckPath: /api/sports
+    envVars:
+      - key: RAPIDAPI_KEY
+        sync: false
