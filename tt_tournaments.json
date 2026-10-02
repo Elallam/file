@@ -1,0 +1,2078 @@
+[
+ {
+  "category": "Hong Kong",
+  "category_id": 2313,
+  "tournaments": []
+ },
+ {
+  "category": "International",
+  "category_id": 88,
+  "tournaments": [
+   {
+    "id": 564,
+    "name": "Olympic Games, Singles"
+   },
+   {
+    "id": 565,
+    "name": "Olympic Games Women, Singles"
+   },
+   {
+    "id": 1121,
+    "name": "Olympic Games, Team"
+   },
+   {
+    "id": 1123,
+    "name": "Olympic Games Women, Team"
+   },
+   {
+    "id": 2122,
+    "name": "ETTU Champions League"
+   },
+   {
+    "id": 19516,
+    "name": "WTT Champions Macao, Women Singles"
+   },
+   {
+    "id": 19573,
+    "name": "WTT Contender Nova Gorica"
+   },
+   {
+    "id": 19577,
+    "name": "WTT Contender Nova Gorica, Doubles"
+   },
+   {
+    "id": 19580,
+    "name": "WTT Contender Nova Gorica, Women"
+   },
+   {
+    "id": 19581,
+    "name": "WTT Contender Nova Gorica, Women Doubles"
+   },
+   {
+    "id": 19582,
+    "name": "WTT Contender Nova Gorica, Mixed Doubles"
+   },
+   {
+    "id": 19876,
+    "name": "WTT Contender Durban, Mixed Doubles"
+   },
+   {
+    "id": 19877,
+    "name": "WTT Contender Durban, Doubles"
+   },
+   {
+    "id": 19878,
+    "name": "WTT Contender Durban, Women Singles"
+   },
+   {
+    "id": 9500,
+    "name": "ETTU Champions League, Women"
+   },
+   {
+    "id": 11457,
+    "name": "European Championship (MD)"
+   },
+   {
+    "id": 11458,
+    "name": "European Championship (WD)"
+   },
+   {
+    "id": 11459,
+    "name": "European Championship (XD)"
+   },
+   {
+    "id": 11455,
+    "name": "European Championship (MS) "
+   },
+   {
+    "id": 11456,
+    "name": "European Championship (WS)"
+   },
+   {
+    "id": 9550,
+    "name": "ETTU Europe Cup"
+   },
+   {
+    "id": 9534,
+    "name": "ETTU Europe Cup, Women"
+   },
+   {
+    "id": 11579,
+    "name": "World Championships, Singles"
+   },
+   {
+    "id": 11586,
+    "name": "World Championships, Women Singles"
+   },
+   {
+    "id": 11587,
+    "name": "World Championships, Mixed Doubles"
+   },
+   {
+    "id": 11580,
+    "name": "World Championships, Doubles"
+   },
+   {
+    "id": 11585,
+    "name": "World Championships, Women Doubles"
+   },
+   {
+    "id": 1966,
+    "name": "World Cup"
+   },
+   {
+    "id": 1964,
+    "name": "World Cup, Women"
+   },
+   {
+    "id": 21977,
+    "name": "World Team Championships Finals"
+   },
+   {
+    "id": 21978,
+    "name": "World Team Championships Finals, Women"
+   },
+   {
+    "id": 11604,
+    "name": "World Junior Championships, Singles"
+   },
+   {
+    "id": 10699,
+    "name": "World Junior Championships, Doubles"
+   },
+   {
+    "id": 10697,
+    "name": "World Junior Championships, Mixed Doubles"
+   },
+   {
+    "id": 10698,
+    "name": "World Junior Championships, Girls"
+   },
+   {
+    "id": 10700,
+    "name": "World Junior Championships, Girls Doubles"
+   },
+   {
+    "id": 11674,
+    "name": "Hungarian Open (WT), Mixed Doubles"
+   },
+   {
+    "id": 10781,
+    "name": "Hungarian Open (WT) 2018, Doubles"
+   },
+   {
+    "id": 10734,
+    "name": "ITTF World Tour,  s 2017, Women Doubles"
+   },
+   {
+    "id": 13445,
+    "name": "Qatar Open 2019, XD"
+   },
+   {
+    "id": 11049,
+    "name": "German Open (WTP) 2018, Doubles"
+   },
+   {
+    "id": 11051,
+    "name": "German Open (WTP) 2018"
+   },
+   {
+    "id": 10782,
+    "name": "Hungarian Open (WT) 2018, Women Doubles"
+   },
+   {
+    "id": 11030,
+    "name": "Qatar Open (WTP) 2018, Doubles"
+   },
+   {
+    "id": 11031,
+    "name": "Qatar Open (WTP) 2018, Women Doubles"
+   },
+   {
+    "id": 11028,
+    "name": "Qatar Open (WTP) 2018"
+   },
+   {
+    "id": 11050,
+    "name": "German Open (WTP) 2018, Women Doubles"
+   },
+   {
+    "id": 10732,
+    "name": "World Tour Finals, MD"
+   },
+   {
+    "id": 10733,
+    "name": "World Tour Cup Finals, Women"
+   },
+   {
+    "id": 3070,
+    "name": "ITTF Europe Top 16, Women"
+   },
+   {
+    "id": 10779,
+    "name": "ITTF World Tour, Hungarian Open 2018, Women"
+   },
+   {
+    "id": 10780,
+    "name": "ITTF World Tour, Hungarian Open 2018"
+   },
+   {
+    "id": 10731,
+    "name": "World Tour Cup Finals"
+   },
+   {
+    "id": 11029,
+    "name": "Qatar Open (WTP) 2018, Women"
+   },
+   {
+    "id": 11052,
+    "name": "German Open (WTP) 2018, Women"
+   },
+   {
+    "id": 3069,
+    "name": "ITTF Europe Top 16"
+   },
+   {
+    "id": 14307,
+    "name": "German Open, Mixed, Doubles"
+   },
+   {
+    "id": 14664,
+    "name": "ITTF Challenge, Spanish Open, Singles"
+   },
+   {
+    "id": 14665,
+    "name": "ITTF Challenge, Spanish Open, Women, Singles"
+   },
+   {
+    "id": 14666,
+    "name": "ITTF Challenge, Spanish Open, Doubles"
+   },
+   {
+    "id": 14667,
+    "name": "ITTF Challenge, Spanish Open, Women, Doubles"
+   },
+   {
+    "id": 14689,
+    "name": "ITTF Challenge Plus Portugal Open, Singles"
+   },
+   {
+    "id": 14690,
+    "name": "ITTF Challenge Plus Portugal Open, Women, Singles"
+   },
+   {
+    "id": 14691,
+    "name": "ITTF Challenge Plus Portugal Open, Doubles"
+   },
+   {
+    "id": 14692,
+    "name": "ITTF Challenge Plus Portugal Open, Women, Doubles"
+   },
+   {
+    "id": 14693,
+    "name": "ITTF Challenge Plus Portugal Open, Mixed Doubles"
+   },
+   {
+    "id": 14747,
+    "name": "ITTF Challenge Plus Oman Open, MS"
+   },
+   {
+    "id": 14752,
+    "name": "ITTF Challenge, Polish Open, Singles"
+   },
+   {
+    "id": 14753,
+    "name": "ITTF Challenge, Polish Open, Women, Singles"
+   },
+   {
+    "id": 14748,
+    "name": "ITTF Challenge Plus Oman Open, Women, Singles"
+   },
+   {
+    "id": 14749,
+    "name": "ITTF Challenge Plus Oman Open, Doubles"
+   },
+   {
+    "id": 14750,
+    "name": "ITTF Challenge Plus Oman Open, Women, Doubles"
+   },
+   {
+    "id": 14751,
+    "name": "ITTF Challenge Plus Oman Open, Mixed, Doubles"
+   },
+   {
+    "id": 14754,
+    "name": "ITTF Challenge, Polish Open, Doubles"
+   },
+   {
+    "id": 14755,
+    "name": "ITTF Challenge, Polish Open, Women Doubles"
+   },
+   {
+    "id": 17047,
+    "name": "Olympic Tournament, Mixed Doubles"
+   },
+   {
+    "id": 17201,
+    "name": "European Team Championships"
+   },
+   {
+    "id": 17203,
+    "name": "European Team Championships, Women"
+   },
+   {
+    "id": 18818,
+    "name": "ETTU Europe Trophy"
+   },
+   {
+    "id": 18819,
+    "name": "ETTU Europe Trophy, Women"
+   },
+   {
+    "id": 19060,
+    "name": "WTT Contender Tunis 2022, MD"
+   },
+   {
+    "id": 19061,
+    "name": "WTT Contender Tunis 2022, MS"
+   },
+   {
+    "id": 19062,
+    "name": "WTT Contender Tunis 2022, WD"
+   },
+   {
+    "id": 19063,
+    "name": "WTT Contender Tunis 2022, WS"
+   },
+   {
+    "id": 19064,
+    "name": "WTT Contender Tunis 2022, XD"
+   },
+   {
+    "id": 19146,
+    "name": "Latin America Olympic Qualification Tournament"
+   },
+   {
+    "id": 19147,
+    "name": "Latin America Olympic Qualification Tournament, Women"
+   },
+   {
+    "id": 19232,
+    "name": "WTT Contender Muscat 2 2022, MD"
+   },
+   {
+    "id": 19233,
+    "name": "WTT Contender Muscat 2 2022, WD"
+   },
+   {
+    "id": 19234,
+    "name": "WTT Contender Muscat 2 2022, WS"
+   },
+   {
+    "id": 19236,
+    "name": "WTT Contender Muscat 2 2022, MS"
+   },
+   {
+    "id": 19238,
+    "name": "WTT Contender Muscat 2 2022, XD"
+   },
+   {
+    "id": 19270,
+    "name": "WTT Contender Almaty, Mixed Doubles"
+   },
+   {
+    "id": 19271,
+    "name": "WTT Contender Almaty, MD"
+   },
+   {
+    "id": 19273,
+    "name": "WTT Contender Almaty, WD"
+   },
+   {
+    "id": 19274,
+    "name": "WTT Contender Almaty, WS"
+   },
+   {
+    "id": 19272,
+    "name": "WTT Contender Almaty, MS"
+   },
+   {
+    "id": 19379,
+    "name": "WTT Star Contender Doha, MS"
+   },
+   {
+    "id": 19380,
+    "name": "WTT Star Contender Doha, WS"
+   },
+   {
+    "id": 19381,
+    "name": "WTT Star Contender Doha, Mixed, Doubles"
+   },
+   {
+    "id": 19382,
+    "name": "WTT Star Contender Doha, MD"
+   },
+   {
+    "id": 19383,
+    "name": "WTT Star Contender Doha, WD"
+   },
+   {
+    "id": 19395,
+    "name": "WTT Contenders Doha, MS"
+   },
+   {
+    "id": 19405,
+    "name": "WTT Contenders Doha, WS"
+   },
+   {
+    "id": 19406,
+    "name": "WTT Contenders Doha, Men Doubles"
+   },
+   {
+    "id": 19407,
+    "name": "WTT Contenders Doha, Women Double"
+   },
+   {
+    "id": 19408,
+    "name": "WTT Contenders Doha, Mixed Doubles"
+   },
+   {
+    "id": 19419,
+    "name": "WTT Singapore Smash"
+   },
+   {
+    "id": 19420,
+    "name": "WTT Singapore Smash, Doubles"
+   },
+   {
+    "id": 19421,
+    "name": "WTT Singapore Smash, Women"
+   },
+   {
+    "id": 19422,
+    "name": "WTT Singapore Smash, Women Doubles"
+   },
+   {
+    "id": 19423,
+    "name": "WTT Singapore Smash, Mixed Doubles"
+   },
+   {
+    "id": 19429,
+    "name": "WTT Contender Muscat"
+   },
+   {
+    "id": 19430,
+    "name": "WTT Contender Muscat, Doubles"
+   },
+   {
+    "id": 19431,
+    "name": "WTT Contender Muscat, Women"
+   },
+   {
+    "id": 19432,
+    "name": "WTT Contender Muscat, Mixed Doubles"
+   },
+   {
+    "id": 19439,
+    "name": "WTT Contender Muscat, Women Doubles"
+   },
+   {
+    "id": 19515,
+    "name": "WTT Champions Macao, Singles"
+   },
+   {
+    "id": 38519,
+    "name": "Asian Games, MS"
+   },
+   {
+    "id": 38516,
+    "name": "Asian Games, WD"
+   },
+   {
+    "id": 20371,
+    "name": "Challenger Series 2023"
+   },
+   {
+    "id": 23726,
+    "name": "China Smash 2024, WD"
+   },
+   {
+    "id": 23727,
+    "name": "China Smash 2024, XD"
+   },
+   {
+    "id": 23723,
+    "name": "China Smash, MD"
+   },
+   {
+    "id": 23705,
+    "name": "China Smash, MS"
+   },
+   {
+    "id": 23707,
+    "name": "China Smash, WS"
+   },
+   {
+    "id": 21314,
+    "name": "Contender Antalya, Singles"
+   },
+   {
+    "id": 21316,
+    "name": "Contender Antalya, Women, Singles"
+   },
+   {
+    "id": 28765,
+    "name": "Europe Smash Sweden, MD"
+   },
+   {
+    "id": 28708,
+    "name": "Europe Smash Sweden, MS"
+   },
+   {
+    "id": 28764,
+    "name": "Europe Smash Sweden, WD"
+   },
+   {
+    "id": 28709,
+    "name": "Europe Smash Sweden, WS"
+   },
+   {
+    "id": 28763,
+    "name": "Europe Smash Sweden, XD"
+   },
+   {
+    "id": 19145,
+    "name": "European Olympic Qualification Tournament"
+   },
+   {
+    "id": 20136,
+    "name": "Feeder Antalya, Doubles"
+   },
+   {
+    "id": 20133,
+    "name": "Feeder Antalya, Mixed Doubles"
+   },
+   {
+    "id": 20135,
+    "name": "Feeder Antalya, Singles"
+   },
+   {
+    "id": 20141,
+    "name": "Feeder Antalya, Women Doubles"
+   },
+   {
+    "id": 20134,
+    "name": "Feeder Antalya, Women Singles"
+   },
+   {
+    "id": 24231,
+    "name": "Feeder Dusseldorf II, MD"
+   },
+   {
+    "id": 24228,
+    "name": "Feeder Dusseldorf II, MS"
+   },
+   {
+    "id": 24232,
+    "name": "Feeder Dusseldorf II, WD"
+   },
+   {
+    "id": 24230,
+    "name": "Feeder Dusseldorf II, WS"
+   },
+   {
+    "id": 24229,
+    "name": "Feeder Dusseldorf II, XD"
+   },
+   {
+    "id": 21641,
+    "name": "Feeder Dusseldorf, Doubles"
+   },
+   {
+    "id": 21640,
+    "name": "Feeder Dusseldorf, Mixed Doubles"
+   },
+   {
+    "id": 21639,
+    "name": "Feeder Dusseldorf, Singles"
+   },
+   {
+    "id": 21642,
+    "name": "Feeder Dusseldorf, Women Doubles"
+   },
+   {
+    "id": 21637,
+    "name": "Feeder Dusseldorf, Women Singles"
+   },
+   {
+    "id": 22300,
+    "name": "Feeder Havirov, MD"
+   },
+   {
+    "id": 22292,
+    "name": "Feeder Havirov, MS"
+   },
+   {
+    "id": 22295,
+    "name": "Feeder Havirov, WD"
+   },
+   {
+    "id": 22287,
+    "name": "Feeder Havirov, WS"
+   },
+   {
+    "id": 22294,
+    "name": "Feeder Havirov, XD"
+   },
+   {
+    "id": 21604,
+    "name": "Feeder Vila Nova de Gaia, MD"
+   },
+   {
+    "id": 21599,
+    "name": "Feeder Vila Nova de Gaia, MS"
+   },
+   {
+    "id": 21601,
+    "name": "Feeder Vila Nova de Gaia, WD"
+   },
+   {
+    "id": 21600,
+    "name": "Feeder Vila Nova de Gaia, WS"
+   },
+   {
+    "id": 21605,
+    "name": "Feeder Vila Nova de Gaia, XD"
+   },
+   {
+    "id": 27558,
+    "name": "ITTF South American Championships 2025, MD"
+   },
+   {
+    "id": 27557,
+    "name": "ITTF South American Championships 2025, MS"
+   },
+   {
+    "id": 27559,
+    "name": "ITTF South American Championships 2025, WD"
+   },
+   {
+    "id": 27560,
+    "name": "ITTF South American Championships 2025, WS"
+   },
+   {
+    "id": 26643,
+    "name": "ITTF World Championships Finals, MD"
+   },
+   {
+    "id": 26637,
+    "name": "ITTF World Championships Finals, MS"
+   },
+   {
+    "id": 26645,
+    "name": "ITTF World Championships Finals, WD"
+   },
+   {
+    "id": 26638,
+    "name": "ITTF World Championships Finals, WS"
+   },
+   {
+    "id": 26644,
+    "name": "ITTF World Championships Finals, XD"
+   },
+   {
+    "id": 30865,
+    "name": "Masters League"
+   },
+   {
+    "id": 25731,
+    "name": "Star Contender Chennai 2025, MS, Qualifying"
+   },
+   {
+    "id": 25732,
+    "name": "Star Contender Chennai 2025, WS, Qualifying"
+   },
+   {
+    "id": 27795,
+    "name": "United States Smash, MD"
+   },
+   {
+    "id": 27682,
+    "name": "United States Smash, MS"
+   },
+   {
+    "id": 27797,
+    "name": "United States Smash, WD"
+   },
+   {
+    "id": 27681,
+    "name": "United States Smash, WS"
+   },
+   {
+    "id": 27794,
+    "name": "United States Smash, XD"
+   },
+   {
+    "id": 22589,
+    "name": "WTT Champions Chongqing, MS"
+   },
+   {
+    "id": 22590,
+    "name": "WTT Champions Chongqing, WS"
+   },
+   {
+    "id": 31811,
+    "name": "WTT Champions Doha, MS"
+   },
+   {
+    "id": 31812,
+    "name": "WTT Champions Doha, WS"
+   },
+   {
+    "id": 21412,
+    "name": "WTT Champions Frankfurt, Singles"
+   },
+   {
+    "id": 21410,
+    "name": "WTT Champions Frankfurt, Women, Singles"
+   },
+   {
+    "id": 22201,
+    "name": "WTT Champions Incheon, MS"
+   },
+   {
+    "id": 22203,
+    "name": "WTT Champions Incheon, WS"
+   },
+   {
+    "id": 23972,
+    "name": "WTT Champions Montpellier"
+   },
+   {
+    "id": 23971,
+    "name": "WTT Champions Montpellier, Women"
+   },
+   {
+    "id": 20211,
+    "name": "WTT Champions Xinxiang, Singles"
+   },
+   {
+    "id": 20212,
+    "name": "WTT Champions Xinxiang, Women Singles"
+   },
+   {
+    "id": 28513,
+    "name": "WTT Champions Yokohama, MS"
+   },
+   {
+    "id": 28512,
+    "name": "WTT Champions Yokohama, WS"
+   },
+   {
+    "id": 19959,
+    "name": "WTT Contender Amman, Doubles"
+   },
+   {
+    "id": 19960,
+    "name": "WTT Contender Amman, Mixed Doubles"
+   },
+   {
+    "id": 19964,
+    "name": "WTT Contender Amman, Singles"
+   },
+   {
+    "id": 19962,
+    "name": "WTT Contender Amman, Women Doubles"
+   },
+   {
+    "id": 19961,
+    "name": "WTT Contender Amman, Women Singles"
+   },
+   {
+    "id": 21364,
+    "name": "WTT Contender Antalya, MD"
+   },
+   {
+    "id": 21363,
+    "name": "WTT Contender Antalya, WD"
+   },
+   {
+    "id": 21360,
+    "name": "WTT Contender Antalya, XD"
+   },
+   {
+    "id": 28116,
+    "name": "WTT Contender Buenos Aires, MD"
+   },
+   {
+    "id": 28112,
+    "name": "WTT Contender Buenos Aires, MS"
+   },
+   {
+    "id": 28119,
+    "name": "WTT Contender Buenos Aires, WD"
+   },
+   {
+    "id": 28114,
+    "name": "WTT Contender Buenos Aires, WS"
+   },
+   {
+    "id": 28118,
+    "name": "WTT Contender Buenos Aires, XD"
+   },
+   {
+    "id": 19882,
+    "name": "WTT Contender Durban, Singles"
+   },
+   {
+    "id": 19881,
+    "name": "WTT Contender Durban, Women Doubles"
+   },
+   {
+    "id": 22736,
+    "name": "WTT Contender Lagos, MD"
+   },
+   {
+    "id": 20571,
+    "name": "WTT Contender Lagos, MS"
+   },
+   {
+    "id": 22741,
+    "name": "WTT Contender Lagos, WD"
+   },
+   {
+    "id": 20586,
+    "name": "WTT Contender Lagos, WS"
+   },
+   {
+    "id": 22738,
+    "name": "WTT Contender Lagos, XD"
+   },
+   {
+    "id": 20819,
+    "name": "WTT Contender Lima 2023, MD, Qualifying"
+   },
+   {
+    "id": 20820,
+    "name": "WTT Contender Lima 2023, MS, Qualifying"
+   },
+   {
+    "id": 20821,
+    "name": "WTT Contender Lima 2023, WD, Qualifying"
+   },
+   {
+    "id": 20822,
+    "name": "WTT Contender Lima 2023, WS, Qualifying"
+   },
+   {
+    "id": 20823,
+    "name": "WTT Contender Lima 2023, XD, Qualifying"
+   },
+   {
+    "id": 20688,
+    "name": "WTT Contender Ljubljana, Doubles"
+   },
+   {
+    "id": 20687,
+    "name": "WTT Contender Ljubljana, Men Singles"
+   },
+   {
+    "id": 20689,
+    "name": "WTT Contender Ljubljana, Mixed Doubles"
+   },
+   {
+    "id": 20685,
+    "name": "WTT Contender Ljubljana, Women"
+   },
+   {
+    "id": 20690,
+    "name": "WTT Contender Ljubljana, Women Doubles"
+   },
+   {
+    "id": 22570,
+    "name": "WTT Contender Mendoza"
+   },
+   {
+    "id": 22603,
+    "name": "WTT Contender Mendoza, MD"
+   },
+   {
+    "id": 22602,
+    "name": "WTT Contender Mendoza, WD"
+   },
+   {
+    "id": 22569,
+    "name": "WTT Contender Mendoza, Women"
+   },
+   {
+    "id": 22601,
+    "name": "WTT Contender Mendoza, XD"
+   },
+   {
+    "id": 37617,
+    "name": "WTT Contender Panagyurishte, MD"
+   },
+   {
+    "id": 37613,
+    "name": "WTT Contender Panagyurishte, MS"
+   },
+   {
+    "id": 37618,
+    "name": "WTT Contender Panagyurishte, WD"
+   },
+   {
+    "id": 37614,
+    "name": "WTT Contender Panagyurishte, WS"
+   },
+   {
+    "id": 37616,
+    "name": "WTT Contender Panagyurishte, XD"
+   },
+   {
+    "id": 20853,
+    "name": "WTT Contender Rio de Janeiro 2023, MS, Qualifying"
+   },
+   {
+    "id": 20854,
+    "name": "WTT Contender Rio de Janeiro 2023, WS, Qualifying"
+   },
+   {
+    "id": 20859,
+    "name": "WTT Contender Rio de Janeiro, Doubles"
+   },
+   {
+    "id": 20860,
+    "name": "WTT Contender Rio de Janeiro, Mixed Doubles"
+   },
+   {
+    "id": 20861,
+    "name": "WTT Contender Rio de Janeiro, Women Doubles"
+   },
+   {
+    "id": 27198,
+    "name": "WTT Contender Skopje 2025, WD, Qualifying"
+   },
+   {
+    "id": 27203,
+    "name": "WTT Contender Skopje, MD"
+   },
+   {
+    "id": 27199,
+    "name": "WTT Contender Skopje, MS"
+   },
+   {
+    "id": 27200,
+    "name": "WTT Contender Skopje, WS"
+   },
+   {
+    "id": 27201,
+    "name": "WTT Contender Skopje, XD"
+   },
+   {
+    "id": 21493,
+    "name": "WTT Contender Taiyuan, MD"
+   },
+   {
+    "id": 21483,
+    "name": "WTT Contender Taiyuan, MS"
+   },
+   {
+    "id": 21495,
+    "name": "WTT Contender Taiyuan, WD"
+   },
+   {
+    "id": 21492,
+    "name": "WTT Contender Taiyuan, WS"
+   },
+   {
+    "id": 21494,
+    "name": "WTT Contender Taiyuan, XD"
+   },
+   {
+    "id": 20653,
+    "name": "WTT Contender Zagreb"
+   },
+   {
+    "id": 20648,
+    "name": "WTT Contender Zagreb, Double"
+   },
+   {
+    "id": 20647,
+    "name": "WTT Contender Zagreb, Mixed Double"
+   },
+   {
+    "id": 20655,
+    "name": "WTT Contender Zagreb, Women"
+   },
+   {
+    "id": 20651,
+    "name": "WTT Contender Zagreb, Women Double"
+   },
+   {
+    "id": 36018,
+    "name": "WTT Feeder Asuncion, MD"
+   },
+   {
+    "id": 35968,
+    "name": "WTT Feeder Asuncion, MS"
+   },
+   {
+    "id": 35971,
+    "name": "WTT Feeder Asuncion, WD"
+   },
+   {
+    "id": 35970,
+    "name": "WTT Feeder Asuncion, WS"
+   },
+   {
+    "id": 35966,
+    "name": "WTT Feeder Asuncion, XD"
+   },
+   {
+    "id": 37870,
+    "name": "WTT Feeder Bangkok, MD"
+   },
+   {
+    "id": 37868,
+    "name": "WTT Feeder Bangkok, MS"
+   },
+   {
+    "id": 37869,
+    "name": "WTT Feeder Bangkok, WD"
+   },
+   {
+    "id": 37867,
+    "name": "WTT Feeder Bangkok, WS"
+   },
+   {
+    "id": 37864,
+    "name": "WTT Feeder Bangkok, XD"
+   },
+   {
+    "id": 22190,
+    "name": "WTT Feeder Beirut II, MD"
+   },
+   {
+    "id": 22188,
+    "name": "WTT Feeder Beirut II, MS"
+   },
+   {
+    "id": 22189,
+    "name": "WTT Feeder Beirut II, WD"
+   },
+   {
+    "id": 22185,
+    "name": "WTT Feeder Beirut II, WS"
+   },
+   {
+    "id": 22184,
+    "name": "WTT Feeder Beirut II, XD"
+   },
+   {
+    "id": 22153,
+    "name": "WTT Feeder Beirut, MD"
+   },
+   {
+    "id": 22149,
+    "name": "WTT Feeder Beirut, MS"
+   },
+   {
+    "id": 22151,
+    "name": "WTT Feeder Beirut, WD"
+   },
+   {
+    "id": 22150,
+    "name": "WTT Feeder Beirut, WS"
+   },
+   {
+    "id": 22152,
+    "name": "WTT Feeder Beirut, XD"
+   },
+   {
+    "id": 37042,
+    "name": "WTT Feeder Berlin, MD"
+   },
+   {
+    "id": 36959,
+    "name": "WTT Feeder Berlin, MS"
+   },
+   {
+    "id": 36963,
+    "name": "WTT Feeder Berlin, WD"
+   },
+   {
+    "id": 36962,
+    "name": "WTT Feeder Berlin, WS"
+   },
+   {
+    "id": 36960,
+    "name": "WTT Feeder Berlin, XD"
+   },
+   {
+    "id": 21760,
+    "name": "WTT Feeder Biella, MD"
+   },
+   {
+    "id": 21759,
+    "name": "WTT Feeder Biella, MS"
+   },
+   {
+    "id": 21766,
+    "name": "WTT Feeder Biella, WD"
+   },
+   {
+    "id": 21776,
+    "name": "WTT Feeder Biella, WS"
+   },
+   {
+    "id": 21765,
+    "name": "WTT Feeder Biella, XD"
+   },
+   {
+    "id": 23991,
+    "name": "WTT Feeder Cagliari, MD"
+   },
+   {
+    "id": 23973,
+    "name": "WTT Feeder Cagliari, MS"
+   },
+   {
+    "id": 23993,
+    "name": "WTT Feeder Cagliari, WD"
+   },
+   {
+    "id": 23992,
+    "name": "WTT Feeder Cagliari, WS"
+   },
+   {
+    "id": 23974,
+    "name": "WTT Feeder Cagliari, XD"
+   },
+   {
+    "id": 22464,
+    "name": "WTT Feeder Cappadocia 2024, MS, Qualifying"
+   },
+   {
+    "id": 29520,
+    "name": "WTT Feeder Cappadocia II, MD"
+   },
+   {
+    "id": 29515,
+    "name": "WTT Feeder Cappadocia II, MS"
+   },
+   {
+    "id": 29517,
+    "name": "WTT Feeder Cappadocia II, WD"
+   },
+   {
+    "id": 29514,
+    "name": "WTT Feeder Cappadocia II, WS"
+   },
+   {
+    "id": 29518,
+    "name": "WTT Feeder Cappadocia II, XD"
+   },
+   {
+    "id": 22472,
+    "name": "WTT Feeder Cappadocia, MD"
+   },
+   {
+    "id": 22475,
+    "name": "WTT Feeder Cappadocia, WD"
+   },
+   {
+    "id": 22470,
+    "name": "WTT Feeder Cappadocia, WS"
+   },
+   {
+    "id": 22471,
+    "name": "WTT Feeder Cappadocia, XD"
+   },
+   {
+    "id": 24057,
+    "name": "WTT Feeder Caracas, MD"
+   },
+   {
+    "id": 24056,
+    "name": "WTT Feeder Caracas, MS"
+   },
+   {
+    "id": 24059,
+    "name": "WTT Feeder Caracas, WD"
+   },
+   {
+    "id": 24066,
+    "name": "WTT Feeder Caracas, WS"
+   },
+   {
+    "id": 24058,
+    "name": "WTT Feeder Caracas, XD"
+   },
+   {
+    "id": 21883,
+    "name": "WTT Feeder Corpus Christi, MD"
+   },
+   {
+    "id": 21872,
+    "name": "WTT Feeder Corpus Christi, MS"
+   },
+   {
+    "id": 21885,
+    "name": "WTT Feeder Corpus Christi, WD"
+   },
+   {
+    "id": 21871,
+    "name": "WTT Feeder Corpus Christi, WS"
+   },
+   {
+    "id": 21880,
+    "name": "WTT Feeder Corpus Christi, XD"
+   },
+   {
+    "id": 21350,
+    "name": "WTT Feeder Doha II, MD"
+   },
+   {
+    "id": 21351,
+    "name": "WTT Feeder Doha II, MS"
+   },
+   {
+    "id": 21349,
+    "name": "WTT Feeder Doha II, WD"
+   },
+   {
+    "id": 21326,
+    "name": "WTT Feeder Doha II, WS"
+   },
+   {
+    "id": 21347,
+    "name": "WTT Feeder Doha II, XD"
+   },
+   {
+    "id": 23821,
+    "name": "WTT Feeder Doha, MD"
+   },
+   {
+    "id": 23808,
+    "name": "WTT Feeder Doha, MS"
+   },
+   {
+    "id": 23818,
+    "name": "WTT Feeder Doha, WD"
+   },
+   {
+    "id": 23820,
+    "name": "WTT Feeder Doha, WS"
+   },
+   {
+    "id": 23819,
+    "name": "WTT Feeder Doha, XD"
+   },
+   {
+    "id": 30822,
+    "name": "WTT Feeder Gdansk, MD"
+   },
+   {
+    "id": 30762,
+    "name": "WTT Feeder Gdansk, MS"
+   },
+   {
+    "id": 30860,
+    "name": "WTT Feeder Gdansk, WD"
+   },
+   {
+    "id": 30859,
+    "name": "WTT Feeder Gdansk, WS"
+   },
+   {
+    "id": 30821,
+    "name": "WTT Feeder Gdansk, XD"
+   },
+   {
+    "id": 23644,
+    "name": "WTT Feeder Halmstad, MD"
+   },
+   {
+    "id": 23640,
+    "name": "WTT Feeder Halmstad, MS"
+   },
+   {
+    "id": 23643,
+    "name": "WTT Feeder Halmstad, WD"
+   },
+   {
+    "id": 23642,
+    "name": "WTT Feeder Halmstad, WS"
+   },
+   {
+    "id": 23641,
+    "name": "WTT Feeder Halmstad, XD"
+   },
+   {
+    "id": 35014,
+    "name": "WTT Feeder Hennebont, MD"
+   },
+   {
+    "id": 34956,
+    "name": "WTT Feeder Hennebont, MS"
+   },
+   {
+    "id": 35015,
+    "name": "WTT Feeder Hennebont, WD"
+   },
+   {
+    "id": 34957,
+    "name": "WTT Feeder Hennebont, WS"
+   },
+   {
+    "id": 34955,
+    "name": "WTT Feeder Hennebont, XD"
+   },
+   {
+    "id": 35868,
+    "name": "WTT Feeder Istanbul II, MD"
+   },
+   {
+    "id": 35793,
+    "name": "WTT Feeder Istanbul II, MS"
+   },
+   {
+    "id": 35874,
+    "name": "WTT Feeder Istanbul II, WD"
+   },
+   {
+    "id": 35795,
+    "name": "WTT Feeder Istanbul II, WS"
+   },
+   {
+    "id": 35796,
+    "name": "WTT Feeder Istanbul II, XD"
+   },
+   {
+    "id": 29437,
+    "name": "WTT Feeder Istanbul, MD"
+   },
+   {
+    "id": 29403,
+    "name": "WTT Feeder Istanbul, MS"
+   },
+   {
+    "id": 29405,
+    "name": "WTT Feeder Istanbul, WD"
+   },
+   {
+    "id": 29404,
+    "name": "WTT Feeder Istanbul, WS"
+   },
+   {
+    "id": 29402,
+    "name": "WTT Feeder Istanbul, XD"
+   },
+   {
+    "id": 34918,
+    "name": "WTT Feeder Lagos 2026, WD"
+   },
+   {
+    "id": 34836,
+    "name": "WTT Feeder Lagos 2026, WS"
+   },
+   {
+    "id": 34837,
+    "name": "WTT Feeder Lagos, MD"
+   },
+   {
+    "id": 34832,
+    "name": "WTT Feeder Lagos, MS"
+   },
+   {
+    "id": 34838,
+    "name": "WTT Feeder Lagos, XD"
+   },
+   {
+    "id": 32160,
+    "name": "WTT Feeder Lille, MD"
+   },
+   {
+    "id": 32156,
+    "name": "WTT Feeder Lille, MS"
+   },
+   {
+    "id": 32161,
+    "name": "WTT Feeder Lille, WD"
+   },
+   {
+    "id": 32159,
+    "name": "WTT Feeder Lille, WS"
+   },
+   {
+    "id": 32162,
+    "name": "WTT Feeder Lille, XD"
+   },
+   {
+    "id": 38304,
+    "name": "WTT Feeder Linz, MD"
+   },
+   {
+    "id": 38300,
+    "name": "WTT Feeder Linz, MS"
+   },
+   {
+    "id": 38303,
+    "name": "WTT Feeder Linz, WD"
+   },
+   {
+    "id": 38299,
+    "name": "WTT Feeder Linz, WS"
+   },
+   {
+    "id": 38293,
+    "name": "WTT Feeder Linz, XD"
+   },
+   {
+    "id": 21945,
+    "name": "WTT Feeder Manchester, MD"
+   },
+   {
+    "id": 21939,
+    "name": "WTT Feeder Manchester, MS"
+   },
+   {
+    "id": 21944,
+    "name": "WTT Feeder Manchester, WD"
+   },
+   {
+    "id": 21940,
+    "name": "WTT Feeder Manchester, WS"
+   },
+   {
+    "id": 21943,
+    "name": "WTT Feeder Manchester, XD"
+   },
+   {
+    "id": 23447,
+    "name": "WTT Feeder Muscat, MD"
+   },
+   {
+    "id": 23443,
+    "name": "WTT Feeder Muscat, MS"
+   },
+   {
+    "id": 23449,
+    "name": "WTT Feeder Muscat, WD"
+   },
+   {
+    "id": 23450,
+    "name": "WTT Feeder Muscat, WS"
+   },
+   {
+    "id": 23451,
+    "name": "WTT Feeder Muscat, XD"
+   },
+   {
+    "id": 23347,
+    "name": "WTT Feeder Olomouc, MD"
+   },
+   {
+    "id": 23363,
+    "name": "WTT Feeder Olomouc, MS"
+   },
+   {
+    "id": 23364,
+    "name": "WTT Feeder Olomouc, WD"
+   },
+   {
+    "id": 23362,
+    "name": "WTT Feeder Olomouc, WS"
+   },
+   {
+    "id": 23348,
+    "name": "WTT Feeder Olomouc, XD"
+   },
+   {
+    "id": 25793,
+    "name": "WTT Feeder Otocec II, MD"
+   },
+   {
+    "id": 25791,
+    "name": "WTT Feeder Otocec II, MS"
+   },
+   {
+    "id": 25796,
+    "name": "WTT Feeder Otocec II, WD"
+   },
+   {
+    "id": 25792,
+    "name": "WTT Feeder Otocec II, WS"
+   },
+   {
+    "id": 25794,
+    "name": "WTT Feeder Otocec II, XD"
+   },
+   {
+    "id": 21415,
+    "name": "WTT Feeder Otocec, MD"
+   },
+   {
+    "id": 21417,
+    "name": "WTT Feeder Otocec, MS"
+   },
+   {
+    "id": 21416,
+    "name": "WTT Feeder Otocec, WD"
+   },
+   {
+    "id": 21418,
+    "name": "WTT Feeder Otocec, WS"
+   },
+   {
+    "id": 21419,
+    "name": "WTT Feeder Otocec, XD"
+   },
+   {
+    "id": 23609,
+    "name": "WTT Feeder Panagyurishte, Doubles"
+   },
+   {
+    "id": 23612,
+    "name": "WTT Feeder Panagyurishte, Mixed Doubles"
+   },
+   {
+    "id": 23606,
+    "name": "WTT Feeder Panagyurishte, Singles"
+   },
+   {
+    "id": 23610,
+    "name": "WTT Feeder Panagyurishte, Women, Doubles"
+   },
+   {
+    "id": 23611,
+    "name": "WTT Feeder Panagyurishte, Women, Singles"
+   },
+   {
+    "id": 31290,
+    "name": "WTT Feeder Parma, MD"
+   },
+   {
+    "id": 31282,
+    "name": "WTT Feeder Parma, MS"
+   },
+   {
+    "id": 31289,
+    "name": "WTT Feeder Parma, WD"
+   },
+   {
+    "id": 31283,
+    "name": "WTT Feeder Parma, WS"
+   },
+   {
+    "id": 31287,
+    "name": "WTT Feeder Parma, XD"
+   },
+   {
+    "id": 24049,
+    "name": "WTT Feeder Prishtina, MD"
+   },
+   {
+    "id": 24046,
+    "name": "WTT Feeder Prishtina, MS"
+   },
+   {
+    "id": 24048,
+    "name": "WTT Feeder Prishtina, WD"
+   },
+   {
+    "id": 24047,
+    "name": "WTT Feeder Prishtina, WS"
+   },
+   {
+    "id": 24050,
+    "name": "WTT Feeder Prishtina, XD"
+   },
+   {
+    "id": 37712,
+    "name": "WTT Feeder Puerto Princesa, MD"
+   },
+   {
+    "id": 37597,
+    "name": "WTT Feeder Puerto Princesa, MS"
+   },
+   {
+    "id": 37598,
+    "name": "WTT Feeder Puerto Princesa, WD"
+   },
+   {
+    "id": 37595,
+    "name": "WTT Feeder Puerto Princesa, WS"
+   },
+   {
+    "id": 37596,
+    "name": "WTT Feeder Puerto Princesa, XD"
+   },
+   {
+    "id": 34275,
+    "name": "WTT Feeder Senec, MD"
+   },
+   {
+    "id": 34271,
+    "name": "WTT Feeder Senec, MS"
+   },
+   {
+    "id": 34274,
+    "name": "WTT Feeder Senec, WD"
+   },
+   {
+    "id": 34273,
+    "name": "WTT Feeder Senec, WS"
+   },
+   {
+    "id": 34272,
+    "name": "WTT Feeder Senec, XD"
+   },
+   {
+    "id": 28582,
+    "name": "WTT Feeder Spokane II, MD"
+   },
+   {
+    "id": 28580,
+    "name": "WTT Feeder Spokane II, MS"
+   },
+   {
+    "id": 28583,
+    "name": "WTT Feeder Spokane II, WD"
+   },
+   {
+    "id": 28581,
+    "name": "WTT Feeder Spokane II, WS"
+   },
+   {
+    "id": 28579,
+    "name": "WTT Feeder Spokane II, XD"
+   },
+   {
+    "id": 28519,
+    "name": "WTT Feeder Spokane, MD"
+   },
+   {
+    "id": 28496,
+    "name": "WTT Feeder Spokane, MS"
+   },
+   {
+    "id": 28518,
+    "name": "WTT Feeder Spokane, WD"
+   },
+   {
+    "id": 28517,
+    "name": "WTT Feeder Spokane, WS"
+   },
+   {
+    "id": 28516,
+    "name": "WTT Feeder Spokane, XD"
+   },
+   {
+    "id": 21225,
+    "name": "WTT Feeder Stockholm, Doubles"
+   },
+   {
+    "id": 21224,
+    "name": "WTT Feeder Stockholm, Mixed Doubles"
+   },
+   {
+    "id": 21220,
+    "name": "WTT Feeder Stockholm, Singles"
+   },
+   {
+    "id": 21221,
+    "name": "WTT Feeder Stockholm, Women Doubles"
+   },
+   {
+    "id": 21223,
+    "name": "WTT Feeder Stockholm, Women Singles"
+   },
+   {
+    "id": 36308,
+    "name": "WTT Feeder Tashkent, MD"
+   },
+   {
+    "id": 36305,
+    "name": "WTT Feeder Tashkent, MS"
+   },
+   {
+    "id": 36307,
+    "name": "WTT Feeder Tashkent, WD"
+   },
+   {
+    "id": 36304,
+    "name": "WTT Feeder Tashkent, WS"
+   },
+   {
+    "id": 36303,
+    "name": "WTT Feeder Tashkent, XD"
+   },
+   {
+    "id": 36206,
+    "name": "WTT Feeder Ulaanbaatar, MD"
+   },
+   {
+    "id": 36203,
+    "name": "WTT Feeder Ulaanbaatar, MS"
+   },
+   {
+    "id": 36237,
+    "name": "WTT Feeder Ulaanbaatar, WD"
+   },
+   {
+    "id": 36205,
+    "name": "WTT Feeder Ulaanbaatar, WS"
+   },
+   {
+    "id": 36208,
+    "name": "WTT Feeder Ulaanbaatar, XD"
+   },
+   {
+    "id": 31845,
+    "name": "WTT Feeder Vadodara, MD"
+   },
+   {
+    "id": 31828,
+    "name": "WTT Feeder Vadodara, MS"
+   },
+   {
+    "id": 31831,
+    "name": "WTT Feeder Vadodara, WD"
+   },
+   {
+    "id": 31829,
+    "name": "WTT Feeder Vadodara, WS"
+   },
+   {
+    "id": 31826,
+    "name": "WTT Feeder Vadodara, XD"
+   },
+   {
+    "id": 22231,
+    "name": "WTT Feeder Varazdin, MD"
+   },
+   {
+    "id": 22232,
+    "name": "WTT Feeder Varazdin, MD"
+   },
+   {
+    "id": 22234,
+    "name": "WTT Feeder Varazdin, MS"
+   },
+   {
+    "id": 22233,
+    "name": "WTT Feeder Varazdin, WS"
+   },
+   {
+    "id": 22230,
+    "name": "WTT Feeder Varazdin, XD"
+   },
+   {
+    "id": 28587,
+    "name": "WTT Feeder Vientiane, MD"
+   },
+   {
+    "id": 28590,
+    "name": "WTT Feeder Vientiane, MS"
+   },
+   {
+    "id": 28589,
+    "name": "WTT Feeder Vientiane, WD"
+   },
+   {
+    "id": 28672,
+    "name": "WTT Feeder Vientiane, WS"
+   },
+   {
+    "id": 28586,
+    "name": "WTT Feeder Vientiane, XD"
+   },
+   {
+    "id": 31441,
+    "name": "WTT Finals Hong Kong, MS"
+   },
+   {
+    "id": 31442,
+    "name": "WTT Finals Hong Kong, WS"
+   },
+   {
+    "id": 31444,
+    "name": "WTT Finals Hong Kong, XD"
+   },
+   {
+    "id": 22422,
+    "name": "WTT Saudi Smash, MD"
+   },
+   {
+    "id": 22386,
+    "name": "WTT Saudi Smash, MS"
+   },
+   {
+    "id": 22420,
+    "name": "WTT Saudi Smash, WD"
+   },
+   {
+    "id": 22387,
+    "name": "WTT Saudi Smash, WS"
+   },
+   {
+    "id": 22413,
+    "name": "WTT Saudi Smash, XD"
+   },
+   {
+    "id": 37919,
+    "name": "WTT Star Contender Astana, MD"
+   },
+   {
+    "id": 37920,
+    "name": "WTT Star Contender Astana, MS"
+   },
+   {
+    "id": 37911,
+    "name": "WTT Star Contender Astana, WD"
+   },
+   {
+    "id": 37921,
+    "name": "WTT Star Contender Astana, WS"
+   },
+   {
+    "id": 37924,
+    "name": "WTT Star Contender Astana, XD"
+   },
+   {
+    "id": 20280,
+    "name": "WTT Star Contender Bangkok, Doubles"
+   },
+   {
+    "id": 20277,
+    "name": "WTT Star Contender Bangkok, Mixed Doubles"
+   },
+   {
+    "id": 20286,
+    "name": "WTT Star Contender Bangkok, Singles"
+   },
+   {
+    "id": 20278,
+    "name": "WTT Star Contender Bangkok, Women Doubles"
+   },
+   {
+    "id": 20281,
+    "name": "WTT Star Contender Bangkok, Women Singles"
+   },
+   {
+    "id": 25733,
+    "name": "WTT Star Contender Chennai, MD"
+   },
+   {
+    "id": 25734,
+    "name": "WTT Star Contender Chennai, WD"
+   },
+   {
+    "id": 25735,
+    "name": "WTT Star Contender Chennai, XD"
+   },
+   {
+    "id": 28345,
+    "name": "WTT Star Contender Foz do Iguacu 2025, MD, Qual."
+   },
+   {
+    "id": 28346,
+    "name": "WTT Star Contender Foz do Iguacu 2025, MS, Qual."
+   },
+   {
+    "id": 28347,
+    "name": "WTT Star Contender Foz do Iguacu 2025, WD, Qual."
+   },
+   {
+    "id": 28348,
+    "name": "WTT Star Contender Foz do Iguacu 2025, XD, Qual."
+   },
+   {
+    "id": 28363,
+    "name": "WTT Star Contender Foz do Iguacu, WS"
+   },
+   {
+    "id": 20041,
+    "name": "WTT Star Contender Goa, Doubles"
+   },
+   {
+    "id": 20036,
+    "name": "WTT Star Contender Goa, Mixed Doubles"
+   },
+   {
+    "id": 20039,
+    "name": "WTT Star Contender Goa, Singles"
+   },
+   {
+    "id": 20040,
+    "name": "WTT Star Contender Goa, Women, Doubles"
+   },
+   {
+    "id": 20038,
+    "name": "WTT Star Contender Goa, Women, Singles"
+   },
+   {
+    "id": 21242,
+    "name": "WTT Star Contender Lanzhou, MD"
+   },
+   {
+    "id": 21246,
+    "name": "WTT Star Contender Lanzhou, MS"
+   },
+   {
+    "id": 21247,
+    "name": "WTT Star Contender Lanzhou, WD"
+   },
+   {
+    "id": 21244,
+    "name": "WTT Star Contender Lanzhou, WS"
+   },
+   {
+    "id": 21243,
+    "name": "WTT Star Contender Lanzhou, XD"
+   },
+   {
+    "id": 30368,
+    "name": "WTT Star Contender London, MD"
+   },
+   {
+    "id": 30367,
+    "name": "WTT Star Contender London, MS"
+   },
+   {
+    "id": 30369,
+    "name": "WTT Star Contender London, WD"
+   },
+   {
+    "id": 30372,
+    "name": "WTT Star Contender London, WS"
+   },
+   {
+    "id": 30370,
+    "name": "WTT Star Contender London, XD"
+   },
+   {
+    "id": 31002,
+    "name": "WTT Star Contender Muscat, MD"
+   },
+   {
+    "id": 31001,
+    "name": "WTT Star Contender Muscat, MS"
+   },
+   {
+    "id": 31029,
+    "name": "WTT Star Contender Muscat, WD"
+   },
+   {
+    "id": 31003,
+    "name": "WTT Star Contender Muscat, WS"
+   },
+   {
+    "id": 31004,
+    "name": "WTT Star Contender Muscat, XD"
+   },
+   {
+    "id": 36259,
+    "name": "WTT Star Contender Sao Jose dos Campos, MD"
+   },
+   {
+    "id": 36261,
+    "name": "WTT Star Contender Sao Jose dos Campos, MS"
+   },
+   {
+    "id": 36253,
+    "name": "WTT Star Contender Sao Jose dos Campos, WD"
+   },
+   {
+    "id": 36260,
+    "name": "WTT Star Contender Sao Jose dos Campos, WS"
+   },
+   {
+    "id": 36256,
+    "name": "WTT Star Contender Sao Jose dos Campos, XD"
+   },
+   {
+    "id": 21999,
+    "name": "World Team Championships Finals 2024, MS"
+   },
+   {
+    "id": 22000,
+    "name": "World Team Championships Finals 2024, WS"
+   }
+  ]
+ },
+ {
+  "category": "Belarus",
+  "category_id": 2314,
+  "tournaments": [
+   {
+    "id": 31462,
+    "name": "Liga Pro"
+   }
+  ]
+ },
+ {
+  "category": "Italy",
+  "category_id": 2308,
+  "tournaments": []
+ },
+ {
+  "category": "Czech Republic",
+  "category_id": 1369,
+  "tournaments": [
+   {
+    "id": 19039,
+    "name": "Czech Liga Pro"
+   },
+   {
+    "id": 15005,
+    "name": "TT Cup"
+   }
+  ]
+ },
+ {
+  "category": "Poland",
+  "category_id": 1340,
+  "tournaments": [
+   {
+    "id": 19041,
+    "name": "TT Elite Series"
+   }
+  ]
+ },
+ {
+  "category": "Ukraine",
+  "category_id": 1713,
+  "tournaments": [
+   {
+    "id": 15004,
+    "name": "Setka Cup"
+   }
+  ]
+ },
+ {
+  "category": "Russia",
+  "category_id": 1554,
+  "tournaments": [
+   {
+    "id": 15006,
+    "name": "Liga Pro"
+   }
+  ]
+ },
+ {
+  "category": "Germany",
+  "category_id": 145,
+  "tournaments": [
+   {
+    "id": 9410,
+    "name": "Challenger Series "
+   },
+   {
+    "id": 1858,
+    "name": "Table Tennis Bundesliga"
+   }
+  ]
+ }
+]

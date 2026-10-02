@@ -192,7 +192,7 @@ SPORTS = {
         "decider_sets": 3,
         "has_tournament_picker": False,
         "columns": [
-            {"key": "id", "label": "ID"},
+            {"key": "date", "label": "Date"},
             {"key": "game", "label": "Game"},
             {"key": "winner", "label": "Winner (1/2)"},
             {"key": "total_points", "label": "Total points"},
@@ -208,11 +208,16 @@ SPORTS = {
         "leagues": {
             # Belarus Liga Pro: no unique-tournament found under the Belarus category via the
             # RapidAPI proxy (search is unsupported there) -- left unpinned, shows "no data" gracefully.
-            "belarus-liga-pro":  {"label": "Belarus · Liga Pro",  "country": "Belarus",        "search": "Liga Pro",  "tournament_id": None},
+            "belarus-liga-pro":  {"label": "Belarus · Liga Pro",  "country": "Belarus",        "search": "Liga Pro",  "tournament_id": 31462},
             "czech-liga-pro":    {"label": "Czech · Liga Pro",    "country": "Czech Republic", "search": "Liga Pro",  "tournament_id": 19039},
             "czech-tt-cup":      {"label": "Czech · TT Cup",      "country": "Czech Republic", "search": "TT Cup",    "tournament_id": 15005},
             "russia-liga-pro":   {"label": "Russia · Liga Pro",   "country": "Russia",         "search": "Liga Pro",  "tournament_id": 15006},
             "ukraine-setka-cup": {"label": "Ukraine · Setka Cup", "country": "Ukraine",        "search": "Setka Cup", "tournament_id": 15004},
+            "poland-tt-elite":   {"label": "Poland · TT Elite Series", "country": "Poland",   "search": "TT Elite Series", "tournament_id": 19041},
+            "germany-bundesliga":{"label": "Germany · TT Bundesliga",  "country": "Germany",  "search": "Bundesliga",      "tournament_id": 1858},
+            "germany-challenger":{"label": "Germany · Challenger Series","country": "Germany", "search": "Challenger Series","tournament_id": 9410},
+            "ettu-champions":    {"label": "ETTU Champions League",    "country": "Europe",   "search": "ETTU Champions League", "tournament_id": 2122},
+            "ettu-europe-cup":   {"label": "ETTU Europe Cup",          "country": "Europe",   "search": "ETTU Europe Cup", "tournament_id": 9550},
         },
     },
     "football": {
@@ -223,7 +228,7 @@ SPORTS = {
         "decider_sets": None,
         "has_tournament_picker": False,
         "columns": [
-            {"key": "id", "label": "ID"},
+            {"key": "date", "label": "Date"},
             {"key": "game", "label": "Game"},
             {"key": "winner", "label": "Winner (1X2)"},
             {"key": "winner_odd", "label": "Winner odd"},
@@ -278,7 +283,7 @@ SPORTS = {
         "decider_sets": None,
         "has_tournament_picker": False,
         "columns": [
-            {"key": "id", "label": "ID"},
+            {"key": "date", "label": "Date"},
             {"key": "game", "label": "Game"},
             {"key": "winner", "label": "Winner (1/2)"},
             {"key": "winner_odd", "label": "Winner odd"},
@@ -303,7 +308,7 @@ SPORTS = {
         "decider_sets": None,
         "has_tournament_picker": False,
         "columns": [
-            {"key": "id", "label": "ID"},
+            {"key": "date", "label": "Date"},
             {"key": "game", "label": "Game"},
             {"key": "winner", "label": "Winner (1/2)"},
             {"key": "winner_odd", "label": "Winner odd"},
@@ -320,6 +325,20 @@ SPORTS = {
             "acb":        {"label": "Liga ACB",           "country": "Spain",          "search": "ACB",       "tournament_id": 264, "total_line": 163.5},
             "lba":        {"label": "Lega Basket Serie A","country": "Italy",          "search": "Serie A",   "tournament_id": 262, "total_line": 164.5},
             "bbl":        {"label": "BBL",                "country": "Germany",        "search": "BBL",       "tournament_id": 227, "total_line": 159.5},
+            "wnba":       {"label": "WNBA",               "country": "USA",            "search": "WNBA",      "tournament_id": 486, "total_line": 162.5},
+            "ncaa-men":   {"label": "NCAA Men",           "country": "USA (College)",  "search": "NCAA",      "tournament_id": 648, "total_line": 145.5},
+            "g-league":   {"label": "NBA G League",       "country": "USA",            "search": "G League",  "tournament_id": 1580, "total_line": 230.5},
+            "bcl":        {"label": "Basketball Champions League", "country": "Europe", "search": "Champions League", "tournament_id": 9357, "total_line": 163.5},
+            "aba":        {"label": "ABA League",         "country": "Europe",         "search": "ABA League","tournament_id": 235, "total_line": 160.5},
+            "bsl":        {"label": "Turkish BSL",        "country": "Turkey",         "search": "Super League","tournament_id": 519, "total_line": 165.5},
+            "gbl":        {"label": "Greek Basket League","country": "Greece",         "search": "GBL",       "tournament_id": 304, "total_line": 160.5},
+            "lnb":        {"label": "LNB Élite (France)", "country": "France",         "search": "LNB",       "tournament_id": 156, "total_line": 165.5},
+            "lkl":        {"label": "LKL (Lithuania)",    "country": "Lithuania",      "search": "LKL",       "tournament_id": 975, "total_line": 165.5},
+            "israel-bsl": {"label": "Israeli Super League","country": "Israel",        "search": "Super League","tournament_id": 1197, "total_line": 165.5},
+            "nbl-aus":    {"label": "NBL (Australia)",    "country": "Australia",      "search": "NBL",       "tournament_id": 1524, "total_line": 170.5},
+            "cba":        {"label": "CBA (China)",        "country": "China",          "search": "CBA",       "tournament_id": 1566, "total_line": 205.5},
+            "fiba-wc":    {"label": "FIBA World Cup",     "country": "World",          "search": "FIBA World Cup","tournament_id": 441, "total_line": 160.5},
+            "olympics":   {"label": "Olympic Games",      "country": "World",          "search": "Olympic",   "tournament_id": 276, "total_line": 165.5},
         },
     },
     "hockey": {
@@ -330,7 +349,7 @@ SPORTS = {
         "decider_sets": None,
         "has_tournament_picker": False,
         "columns": [
-            {"key": "id", "label": "ID"},
+            {"key": "date", "label": "Date"},
             {"key": "game", "label": "Game"},
             {"key": "winner", "label": "Winner (1/2)"},
             {"key": "winner_odd", "label": "Winner odd"},
@@ -352,6 +371,51 @@ SPORTS = {
             "del":       {"label": "DEL",             "country": "Germany",        "search": "DEL",             "tournament_id": 225},
             "nla":       {"label": "National League", "country": "Switzerland",    "search": "National League", "tournament_id": 128},
             "extraliga": {"label": "Czech Extraliga", "country": "Czech Republic", "search": "Extraliga",       "tournament_id": 237},
+            "ahl":       {"label": "AHL",             "country": "USA",            "search": "AHL",             "tournament_id": 844},
+            "echl":      {"label": "ECHL",            "country": "USA",            "search": "ECHL",            "tournament_id": 17188},
+            "ncaa-hockey": {"label": "NCAA Men",      "country": "USA",            "search": "NCAA",            "tournament_id": 14285},
+            "ohl":       {"label": "OHL",             "country": "Canada",         "search": "OHL",             "tournament_id": 1454},
+            "whl":       {"label": "WHL",             "country": "Canada",         "search": "WHL",             "tournament_id": 9475},
+            "qmjhl":     {"label": "QMJHL",           "country": "Canada",         "search": "QMJHL",           "tournament_id": 14191},
+            "pwhl":      {"label": "PWHL (Women)",    "country": "North America",  "search": "PWHL",            "tournament_id": 21727},
+            "chl":       {"label": "Champions Hockey League", "country": "Europe", "search": "Champions Hockey League", "tournament_id": 494},
+            "iihf-wc":   {"label": "IIHF World Championship", "country": "World",  "search": "World Championship", "tournament_id": 3},
+            "ice-hl":    {"label": "ICE Hockey League","country": "Austria",       "search": "ICE Hockey League","tournament_id": 256},
+            "hockeyallsvenskan": {"label": "HockeyAllsvenskan", "country": "Sweden", "search": "HockeyAllsvenskan", "tournament_id": 416},
+            "swiss-league": {"label": "Swiss League",  "country": "Switzerland",    "search": "Swiss League",    "tournament_id": 129},
+            "slovak-extraliga": {"label": "Slovak Tipsport Liga", "country": "Slovakia", "search": "Tipsport Liga", "tournament_id": 236},
+            "alps-hl":   {"label": "Alps Hockey League","country": "Europe",        "search": "Alps Hockey League","tournament_id": 9342},
+            "vhl":       {"label": "VHL",             "country": "Russia",         "search": "VHL",             "tournament_id": 1141},
+        },
+    },
+    "american-football": {
+        "label": "American Football",
+        "sport_key": "american-football",
+        "analyzer": "amfootball",
+        "metric_label": None,
+        "decider_sets": None,
+        "has_tournament_picker": False,
+        "columns": [
+            {"key": "date", "label": "Date"},
+            {"key": "game", "label": "Game"},
+            {"key": "winner", "label": "Winner (1/2)"},
+            {"key": "winner_odd", "label": "Winner odd"},
+            {"key": "total_points", "label": "Total points (O/U)"},
+        ],
+        "note": ("<b>Winner</b> = 1 (home), 2 (away), X (tie &mdash; rare, regular-season NFL only). "
+                 "<b>Winner odd</b> = pre-match decimal odd of the side that actually won (N/A on a tie, "
+                 "or if SofaScore has no odds for that game). "
+                 "<b>Total points</b> = combined final score (incl. overtime) vs. that match's own real "
+                 "bookmaker line where one was offered, otherwise a generated default line for that league "
+                 "(this data source mostly offers only the moneyline for American football)."),
+        "leagues": {
+            "nfl":        {"label": "NFL",                  "country": "USA",    "search": "NFL",  "tournament_id": 9464,  "total_line": 44.5},
+            "ncaa-fbs":   {"label": "NCAA Division FBS",    "country": "USA",    "search": "NCAA", "tournament_id": 32199, "total_line": 55.5},
+            "ncaa-fcs":   {"label": "NCAA Division FCS",    "country": "USA",    "search": "NCAA", "tournament_id": 32200, "total_line": 50.5},
+            "cfl":        {"label": "CFL",                  "country": "Canada", "search": "CFL",  "tournament_id": 11208, "total_line": 49.5},
+            "elf":        {"label": "European League of Football", "country": "Europe", "search": "ELF", "tournament_id": 17016, "total_line": 52.5},
+            "xfl":        {"label": "XFL",                  "country": "USA",    "search": "XFL",  "tournament_id": 19858, "total_line": 40.5},
+            "nfl-preseason": {"label": "NFL Preseason",     "country": "USA",    "search": "NFL",  "tournament_id": 9465,  "total_line": 38.5},
         },
     },
     "tennis": {
@@ -362,7 +426,7 @@ SPORTS = {
         "decider_sets": 3,
         "has_tournament_picker": True,
         "columns": [
-            {"key": "id", "label": "ID"},
+            {"key": "date", "label": "Date"},
             {"key": "game", "label": "Game"},
             {"key": "winner", "label": "Winner (1/2)"},
             {"key": "total_points", "label": "Total games"},
@@ -804,6 +868,50 @@ def analyze_row_basketball(event: dict, winner_odd, odds=None, default_total_lin
     }
 
 
+def analyze_row_amfootball(event: dict, winner_odd, odds=None, default_total_line=44.5) -> dict:
+    home_team = event.get("homeTeam", {}) or {}
+    away_team = event.get("awayTeam", {}) or {}
+    home = home_team.get("name", "?")
+    away = away_team.get("name", "?")
+    hs = event.get("homeScore", {}) or {}
+    as_ = event.get("awayScore", {}) or {}
+    home_pts = int(hs.get("current", 0) or 0)
+    away_pts = int(as_.get("current", 0) or 0)
+    total_pts = home_pts + away_pts
+
+    winner_code = event.get("winnerCode")
+    if winner_code == 1:
+        outcome, variant = "1", "home"
+    elif winner_code == 2:
+        outcome, variant = "2", "away"
+    elif winner_code == 3 or home_pts == away_pts:
+        outcome, variant = "X", "draw"
+    elif home_pts > away_pts:
+        outcome, variant = "1", "home"
+    else:
+        outcome, variant = "2", "away"
+
+    total_line = pick_main_total_line(odds, 18)  # "Game total", when offered
+    if total_line is None:
+        total_line = default_total_line
+    total_variant = "over" if total_pts > total_line else "under"
+    total_text = f'{total_pts} ({"Over" if total_variant == "over" else "Under"} {total_line:g})'
+
+    return {
+        "id": event.get("id"),
+        "game": cell(f"{home} vs {away}", sub=f"{home_pts}-{away_pts} FT",
+                     home_id=home_team.get("id"), away_id=away_team.get("id"),
+                     home_name=home, away_name=away),
+        "winner": cell(outcome, variant=variant),
+        "winner_odd": cell(f"{winner_odd:.2f}" if winner_odd is not None else "—",
+                            variant="odd-value" if winner_odd is not None else None),
+        "total_points": cell(total_text, variant=total_variant),
+        "highlight": None,
+        "_raw": {"outcome": outcome, "winner_odd": winner_odd,
+                  "total_points": total_pts, "total_variant": total_variant},
+    }
+
+
 def analyze_row_hockey(event: dict, winner_odd, home_odd, away_odd, odds=None,
                         default_total_line=5.5, handicap_line=1.5) -> dict:
     """Total goals uses that match's own real bookmaker line (via the "Match
@@ -942,6 +1050,19 @@ def build_summary(sport_cfg, rows):
             {"label": "Avg winning odd", "value": f"{avg_odd:.2f}" if avg_odd is not None else "—"},
             {"label": "Over their points line", "value": f"{over_n}/{len(points_known)}" if points_known else "—"},
         ]
+    if sport_cfg["analyzer"] == "amfootball":
+        home_n = sum(1 for r in raws if r["outcome"] == "1")
+        tie_n = sum(1 for r in raws if r["outcome"] == "X")
+        away_n = sum(1 for r in raws if r["outcome"] == "2")
+        odds = [r["winner_odd"] for r in raws if r["winner_odd"] is not None]
+        avg_odd = round(sum(odds) / len(odds), 2) if odds else None
+        over_n = sum(1 for r in raws if r["total_variant"] == "over")
+        return [
+            {"label": "Matches", "value": str(n)},
+            {"label": "Home / Tie / Away", "value": f"{home_n} / {tie_n} / {away_n}"},
+            {"label": "Avg winning odd", "value": f"{avg_odd:.2f}" if avg_odd is not None else "—"},
+            {"label": "Over their points line", "value": f"{over_n}/{n}"},
+        ]
     if sport_cfg["analyzer"] == "hockey":
         home_n = sum(1 for r in raws if r["outcome"] == "1")
         away_n = sum(1 for r in raws if r["outcome"] == "2")
@@ -1073,14 +1194,15 @@ async def get_tournament_list(sport_key, league_key):
     return {"category_id": category_id, "tournaments": tagged, "error": None}
 
 
-async def fetch_finished(api, tournament_id, limit):
+async def fetch_finished(api, tournament_id, limit, ts_from=None, ts_to=None):
     league = League(api, tournament_id)
     season = await league.current_season()
     if not season:
         return []
     season_id = season["id"]
     finished, page = [], 0
-    while len(finished) < limit and page < 8:
+    max_pages = 20 if (ts_from or ts_to) else 8
+    while len(finished) < limit and page < max_pages:
         try:
             data = await api._get(
                 f"/unique-tournament/{tournament_id}/season/{season_id}/events/last/{page}"
@@ -1089,8 +1211,18 @@ async def fetch_finished(api, tournament_id, limit):
             break
         events = data.get("events", [])
         for ev in reversed(events):
-            if (ev.get("status", {}) or {}).get("type") == "finished":
-                finished.append(ev)
+            if (ev.get("status", {}) or {}).get("type") != "finished":
+                continue
+            ts = ev.get("startTimestamp")
+            if ts is not None:
+                if ts_to is not None and ts > ts_to:
+                    continue
+                if ts_from is not None and ts < ts_from:
+                    continue
+            finished.append(ev)
+        oldest = min((e.get("startTimestamp") for e in events if e.get("startTimestamp") is not None), default=None)
+        if ts_from is not None and oldest is not None and oldest < ts_from:
+            break  # pages go back in time; everything further is older than the range
         if not data.get("hasNextPage"):
             break
         page += 1
@@ -1279,6 +1411,22 @@ async def build_row(api, sport_cfg, league_cfg, event):
         winner_odd = pick_choice_odd(odds, outcome)
         default_total_line = league_cfg.get("total_line", 219.5)
         return analyze_row_basketball(event, winner_odd, odds, default_total_line)
+    elif sport_cfg["analyzer"] == "amfootball":
+        winner_code = event.get("winnerCode")
+        hs = event.get("homeScore", {}) or {}
+        as_ = event.get("awayScore", {}) or {}
+        hp, ap = int(hs.get("current", 0) or 0), int(as_.get("current", 0) or 0)
+        if winner_code == 1:
+            outcome = "1"
+        elif winner_code == 2:
+            outcome = "2"
+        elif winner_code == 3 or hp == ap:
+            outcome = "X"
+        else:
+            outcome = "1" if hp > ap else "2"
+        winner_odd = pick_choice_odd(odds, outcome)
+        default_total_line = league_cfg.get("total_line", 44.5)
+        return analyze_row_amfootball(event, winner_odd, odds, default_total_line)
     elif sport_cfg["analyzer"] == "hockey":
         winner_code = event.get("winnerCode")
         hs = event.get("homeScore", {}) or {}
@@ -1301,7 +1449,7 @@ async def build_row(api, sport_cfg, league_cfg, event):
         return analyze_row_sets(event, winning_odd, sport_cfg["decider_sets"])
 
 
-async def build_match_payload(sport_key, league_key, tournament_id, limit):
+async def build_match_payload(sport_key, league_key, tournament_id, limit, ts_from=None, ts_to=None):
     sport_cfg = SPORTS[sport_key]
     cfg = sport_cfg["leagues"][league_key]
     api = SofascoreAPI()
@@ -1319,8 +1467,13 @@ async def build_match_payload(sport_key, league_key, tournament_id, limit):
             return {"sport": sport_key, "league": cfg["label"], "tournament_id": None,
                     "rows": [], "summary": [], "error": "Missing tournament id"}
 
-        events = await fetch_finished(api, tid, limit)
-        rows = [await build_row(api, sport_cfg, cfg, ev) for ev in events]
+        events = await fetch_finished(api, tid, limit, ts_from, ts_to)
+        rows = []
+        for ev in events:
+            row = await build_row(api, sport_cfg, cfg, ev)
+            ts = ev.get("startTimestamp")
+            row["date"] = cell("—", ts=ts)
+            rows.append(row)
         summary = build_summary(sport_cfg, rows)
         display_rows = [{k: v for k, v in r.items() if k != "_raw"} for r in rows]
 
@@ -1333,12 +1486,12 @@ async def build_match_payload(sport_key, league_key, tournament_id, limit):
         await api.close()
 
 
-def get_match_data(sport_key, league_key, tournament_id, limit):
-    cache_key = (sport_key, league_key, tournament_id, limit)
+def get_match_data(sport_key, league_key, tournament_id, limit, ts_from=None, ts_to=None):
+    cache_key = (sport_key, league_key, tournament_id, limit, ts_from, ts_to)
     hit = _match_cache.get(cache_key)
     if hit and time.time() - hit[0] < CACHE_TTL:
         return hit[1]
-    payload = asyncio.run(build_match_payload(sport_key, league_key, tournament_id, limit))
+    payload = asyncio.run(build_match_payload(sport_key, league_key, tournament_id, limit, ts_from, ts_to))
     if payload.get("error") is None:
         _match_cache[cache_key] = (time.time(), payload)
     return payload
@@ -1384,6 +1537,8 @@ def api_matches():
     league = request.args.get("league")
     tournament_id = request.args.get("tournament_id", type=int)
     limit = min(int(request.args.get("limit", DEFAULT_LIMIT)), 60)
+    ts_from = request.args.get("from", type=int)  # epoch seconds, inclusive
+    ts_to = request.args.get("to", type=int)
     if sport not in SPORTS:
         return jsonify({"error": "unknown sport"}), 400
     if league not in SPORTS[sport]["leagues"]:
@@ -1391,7 +1546,7 @@ def api_matches():
     if SPORTS[sport]["has_tournament_picker"] and not tournament_id:
         return jsonify({"error": "tournament_id required for this sport"}), 400
     try:
-        return jsonify(get_match_data(sport, league, tournament_id, limit))
+        return jsonify(get_match_data(sport, league, tournament_id, limit, ts_from, ts_to))
     except Exception as e:
         return jsonify({"sport": sport, "league": league, "tournament_id": tournament_id,
                          "rows": [], "summary": [], "error": f"SofaScore request failed: {e}"})
@@ -1441,7 +1596,7 @@ PAGE = r"""
   header .dot{width:10px;height:10px;border-radius:50%;background:var(--accent);
               box-shadow:0 0 0 4px rgba(255,122,26,.15)}
   .wrap{padding:20px 26px;max-width:1160px;margin:0 auto}
-  .sporttabs{display:flex;gap:8px;margin-bottom:14px}
+  .sporttabs{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
   .sporttab{padding:9px 18px;border:1px solid var(--line);background:var(--panel);
        color:var(--muted);border-radius:10px;cursor:pointer;font-size:14px;font-weight:600;
        transition:.15s;user-select:none}
@@ -1557,6 +1712,9 @@ PAGE = r"""
   <div class="bar">
     <label>Matches to load</label>
     <input id="limit" type="number" min="5" max="60" value="25">
+    <label>From</label><input id="dateFrom" type="date" style="width:auto">
+    <label>To</label><input id="dateTo" type="date" style="width:auto">
+    <button class="reload" id="clearDates" type="button">✕ Clear dates</button>
     <button class="reload" id="reload">↻ Reload</button>
   </div>
 
@@ -1706,6 +1864,9 @@ async function load(){
   try{
     let url = `/api/matches?sport=${currentSport}&league=${currentLeague}&limit=${limit}`;
     if(currentTournamentId) url += `&tournament_id=${currentTournamentId}`;
+    const dFrom = document.getElementById('dateFrom').value, dTo = document.getElementById('dateTo').value;
+    if(dFrom) url += `&from=${Math.floor(new Date(dFrom+'T00:00:00').getTime()/1000)}`;
+    if(dTo) url += `&to=${Math.floor(new Date(dTo+'T23:59:59').getTime()/1000)}`;
     const res = await fetch(url);
     const data = await res.json();
     if(data.error && (!data.rows || !data.rows.length)){
@@ -1724,7 +1885,11 @@ async function load(){
       tr.innerHTML = currentMeta.columns.map(col=>{
         const c = r[col.key];
         if(c === undefined || c === null) return '<td>—</td>';
-        if(col.key === 'id') return `<td class="idcol">${c.text}</td>`;
+        if(col.key === 'date'){
+          if(!c.ts) return '<td class="idcol">—</td>';
+          const d = new Date(c.ts*1000), p = n=>String(n).padStart(2,'0');
+          return `<td class="idcol">${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}<div class="winner">${p(d.getHours())}:${p(d.getMinutes())}</div></td>`;
+        }
         if(col.key === 'game'){
           let text = escapeHtml(c.text);
           if(c.home_id && c.away_id){
@@ -1754,6 +1919,10 @@ async function load(){
 }
 
 document.getElementById('reload').onclick = ()=>{ load(); };
+document.getElementById('clearDates').onclick = ()=>{
+  document.getElementById('dateFrom').value=''; document.getElementById('dateTo').value=''; load();
+};
+['dateFrom','dateTo'].forEach(id=>document.getElementById(id).onchange = ()=>{ load(); });
 
 function escapeHtml(s){
   return String(s==null?'':s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
